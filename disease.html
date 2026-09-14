@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Disease Check — Krishi Sathi | कृषि साथी</title>
+  <meta name="description" content="AI-powered crop disease detection. Upload a crop image to identify diseases and get treatment recommendations." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter','system-ui','sans-serif'] } } } }</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Mukta:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    .sidebar-link { transition: background-color 0.15s ease, color 0.15s ease; display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:8px; text-decoration:none; font-size:0.9375rem; color:#52525b; }
+    .sidebar-link:hover { background-color: #d1fae5; color: #065f46; }
+    .nav-active { background-color:#d1fae5; color:#065f46; font-weight:600; border-left:4px solid #065f46; }
+    .lang-btn { transition: all 0.15s ease; }
+    .lang-btn.active { background-color:#065f46; color:#ffffff; }
+
+    /* Dropzone — visual affordance: dashed border signals "drop here" */
+    .dropzone {
+      transition: border-color 0.2s ease, background-color 0.2s ease;
+      cursor: pointer;
+    }
+    .dropzone:hover, .dropzone.drag-over {
+      border-color: #059669;
+      background-color: #f0fdf4;
+    }
+
+    /* Analyse Button — premium affordance styling */
+    #analyseBtn { transition: all 0.2s ease; }
+    #analyseBtn:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(5,150,105,0.35); }
+    #analyseBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Confidence bar animation */
+    #confBar { transition: width 1.2s ease; }
+
+    /* Remedy cards stagger animation */
+    .remedy { animation: slideIn 0.35s ease forwards; opacity: 0; }
+    @keyframes slideIn { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
+    .remedy:nth-child(1) { animation-delay: 0.05s; }
+    .remedy:nth-child(2) { animation-delay: 0.15s; }
+    .remedy:nth-child(3) { animation-delay: 0.25s; }
+    .remedy:nth-child(4) { animation-delay: 0.35s; }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 0.9s linear infinite; }
+  </style>
+</head>
+<body class="bg-zinc-50 font-inter text-zinc-900">
+<div class="flex h-screen overflow-hidden">
+
+  <!-- ── SIDEBAR (consistent shell) ── -->
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="flex-shrink-0 bg-white border-r border-zinc-200 flex flex-col" style="width:272px;">
+    <div class="px-6 pt-7 pb-5 border-b border-zinc-100">
+      <div class="flex items-center gap-3 mb-1">
+        <div class="w-10 h-10 rounded-lg bg-emerald-800 flex items-center justify-center flex-shrink-0">
+          <svg width="22" height="22" viewBox="0 0 20 20" fill="none"><path d="M10 2C6 2 3 6 3 10c0 3 1.5 5.5 4 7" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M10 2c4 0 7 4 7 8 0 3-1.5 5.5-4 7" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M10 18V8" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M6 12l4-4 4 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-emerald-900 leading-tight tracking-wide" data-i18n="brand-name">KRISHI SATHI</p>
+          <p class="text-sm text-emerald-700 font-semibold leading-tight" data-i18n="brand-nepali">कृषि साथी</p>
+        </div>
+      </div>
+      <p class="text-xs text-zinc-400 tracking-widest uppercase mt-2" data-i18n="brand-tagline">Agricultural Digital Portal</p>
+    </div>
+    <!-- Language toggle -->
+    <div class="px-5 py-4 border-b border-zinc-100">
+      <p class="text-xs uppercase tracking-widest text-zinc-400 mb-2 font-medium" data-i18n="lang-label">Language / भाषा</p>
+      <div class="flex rounded-lg border border-zinc-200 overflow-hidden text-sm font-semibold">
+        <button id="langEN" onclick="setLang('en')" class="lang-btn active flex-1 py-2.5 text-center hover:bg-emerald-50">English</button>
+        <button id="langNP" onclick="setLang('np')" class="lang-btn flex-1 py-2.5 text-center text-zinc-500 hover:bg-emerald-50">नेपाली</button>
+      </div>
+    </div>
+    <!-- Nav -->
+    <nav class="flex-1 px-3 py-5 overflow-y-auto space-y-0.5">
+      <p class="text-xs uppercase tracking-widest text-zinc-400 px-3 mb-2 font-medium" data-i18n="nav-menu-heading">Main Menu</p>
+
+      <a href="index.html" class="sidebar-link ">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span data-i18n="nav-dashboard">Dashboard</span></a>
+
+      <a href="crops.html" class="sidebar-link ">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        <span data-i18n="nav-crops">My Crops</span></a>
+
+      <a href="disease.html" class="sidebar-link nav-active">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        <span data-i18n="nav-disease">Disease Check</span></a>
+
+      <a href="forecast.html" class="sidebar-link ">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
+        <span data-i18n="nav-forecast">7-Day Forecast</span></a>
+
+      <a href="marketplace.html" class="sidebar-link ">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        <span data-i18n="nav-marketplace">Marketplace</span></a>
+
+      <a href="rental.html" class="sidebar-link ">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span data-i18n="nav-rental">Equipment Rental</span></a>
+
+      <a href="resources.html" class="sidebar-link ">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
+        <span data-i18n="nav-resources">Farming Resources</span></a>
+
+      <div class="pt-4 mt-4 border-t border-zinc-100">
+        <p class="text-xs uppercase tracking-widest text-zinc-400 px-3 mb-2 font-medium" data-i18n="nav-updates-heading">Updates & Account</p>
+
+        <a href="alerts.html" class="sidebar-link ">
+          <svg class="w-5 h-5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <span data-i18n="nav-alerts">Active Alerts</span></a>
+
+        <a href="notifications.html" class="sidebar-link ">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span data-i18n="nav-notifications">Notifications</span></a>
+
+        <a href="profile.html" class="sidebar-link ">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          <span data-i18n="nav-profile">Profile & Activity</span></a>
+      </div>
+    </nav>
+    <!-- Footer user -->
+    <div class="px-5 py-4 border-t border-zinc-100">
+      <a href="profile.html" class="flex items-center gap-3 hover:bg-zinc-50 rounded-lg p-2 transition-colors">
+        <div class="w-9 h-9 rounded-full bg-emerald-700 flex items-center justify-center text-white text-base font-bold flex-shrink-0">र</div>
+        <div><p class="text-sm font-semibold text-zinc-800">राम शर्मा</p><p class="text-xs text-zinc-400">Farmer · Kavre</p></div>
+      </a>
+    </div>
+  </aside>
+
+  <!-- ── MAIN CONTENT ── -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+
+    <!-- Top Bar -->
+    <header class="bg-white border-b border-zinc-200 px-8 py-4 flex items-center justify-between flex-shrink-0">
+      <div>
+        <p class="text-xs uppercase tracking-widest text-zinc-400 mb-0.5 font-medium">AI-Powered Detection</p>
+        <h1 class="text-2xl font-bold text-zinc-900" data-en="Crop Disease Check" data-np="बालीको रोग जाँच">Crop Disease Check</h1>
+      </div>
+<div class="flex items-center gap-3">
+        <!-- Weather & Location Pill -->
+        <a href="forecast.html" class="hidden md:flex items-center gap-2 bg-emerald-50/80 border border-emerald-200/60 rounded-xl px-3.5 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-100/80 transition-colors">
+          <span class="text-emerald-700 font-bold">📍 Kavre</span>
+          <span class="text-emerald-300">|</span>
+          <span class="text-amber-600">☀️ 24°C</span>
+        </a>
+        <!-- Notifications bell -->
+        <a href="notifications.html" class="relative w-11 h-11 rounded-xl border border-zinc-200 bg-white flex items-center justify-center hover:bg-emerald-50 hover:border-emerald-300 transition-colors" aria-label="Notifications">
+          <svg class="w-5 h-5 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center badge-pulse">4</span>
+        </a>
+        <!-- User chip -->
+        <a href="profile.html" class="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2 hover:border-emerald-300 hover:bg-emerald-50 transition-colors">
+          <div class="w-8 h-8 rounded-full bg-emerald-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">र</div>
+          <div>
+            <p class="text-sm font-semibold text-zinc-800 leading-tight">राम शर्मा</p>
+            <p class="text-xs text-zinc-500 leading-tight">Farmer ID: #4092</p>
+          </div>
+        </a>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto px-8 py-7">
+
+      <!-- Advisory banner -->
+      <div class="bg-amber-50 border border-amber-200 rounded-xl px-6 py-4 mb-7 flex items-start gap-4">
+        <svg class="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p class="text-base text-amber-800">Upload a <strong>clear, close-up photograph</strong> of the affected leaf, stem, or fruit. Our model cross-references visual symptoms against 200+ regional disease profiles for Bagmati Province.</p>
+      </div>
+
+      <!-- Two-Panel Layout -->
+      <div class="flex gap-7 items-start">
+
+        <!-- ── LEFT PANEL: Upload Controls ────────────────── -->
+        <!-- HCI: Affordance — large dropzone with explicit instructions reduces confusion -->
+        <div class="flex-1 min-w-0">
+          <div class="bg-white border border-zinc-200 rounded-2xl p-7">
+            <h2 class="text-xl font-bold text-zinc-800 mb-5" data-en="Upload Affected Crop Image" data-np="रोग लागेको बालीको फोटो अपलोड गर्नुहोस्">Upload Affected Crop Image</h2>
+
+            <!-- Dropzone — Fitts's Law: very large touch target; Norman: explicit constraints shown -->
+            <div id="dropzone" class="dropzone border-3 border-dashed border-zinc-300 rounded-2xl p-12 text-center mb-6"
+              style="border-width:2px;"
+              onclick="document.getElementById('fileInput').click()"
+              ondragover="event.preventDefault(); this.classList.add('drag-over')"
+              ondragleave="this.classList.remove('drag-over')"
+              ondrop="handleDrop(event)">
+              <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="handleFile(event)" />
+
+              <!-- Default state -->
+              <div id="dzDefault">
+                <div class="w-20 h-20 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-5">
+                  <svg class="w-10 h-10 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <!-- HCI: Explicit constraints (Norman) — file types and limits clearly stated -->
+                <p class="text-xl font-semibold text-zinc-700 mb-2">Drop affected crop image here</p>
+                <p class="text-base text-zinc-400 mb-4">or click to browse files from your device</p>
+                <div class="flex items-center justify-center gap-3 flex-wrap">
+                  <span class="bg-zinc-100 text-zinc-500 text-sm font-medium px-3 py-1.5 rounded-full">✓ JPG</span>
+                  <span class="bg-zinc-100 text-zinc-500 text-sm font-medium px-3 py-1.5 rounded-full">✓ PNG</span>
+                  <span class="bg-zinc-100 text-zinc-500 text-sm font-medium px-3 py-1.5 rounded-full">✓ WEBP</span>
+                  <span class="bg-zinc-100 text-zinc-500 text-sm font-medium px-3 py-1.5 rounded-full">Max 10 MB</span>
+                </div>
+              </div>
+
+              <!-- Preview state (shown after file select) -->
+              <div id="dzPreview" class="hidden">
+                <img id="previewImg" src="" alt="Uploaded crop preview" class="max-h-56 mx-auto rounded-xl border border-zinc-200 mb-4 object-contain" />
+                <p id="previewName" class="text-base text-zinc-500 font-medium"></p>
+                <button onclick="event.stopPropagation(); clearFile()" class="mt-3 text-sm text-red-500 font-medium hover:underline">Remove image</button>
+              </div>
+            </div>
+
+            <!-- Crop Selection -->
+            <div class="mb-5">
+              <label class="block text-sm font-bold text-zinc-500 uppercase tracking-wider mb-2">Select Crop Type</label>
+              <!-- Fitts's Law: Large select height py-3.5 -->
+              <select id="cropSelect" class="w-full text-base border border-zinc-200 rounded-xl px-5 py-3.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-zinc-700 font-medium">
+                <option value="">— Choose your crop for accurate matching —</option>
+                <option value="tomato" selected>🍅 Tomato / गोलभेँडा</option>
+                <option value="cauliflower">🥦 Cauliflower / काउली</option>
+                <option value="potato">🥔 Potato / आलु</option>
+                <option value="maize">🌽 Maize / मकै</option>
+                <option value="rice">🌾 Rice / धान</option>
+                <option value="wheat">🌿 Wheat / गहुँ</option>
+              </select>
+            </div>
+
+            <!-- Severity -->
+            <div class="mb-7 bg-zinc-50 border border-zinc-200 rounded-xl px-5 py-4">
+              <label class="block text-sm font-bold text-zinc-500 uppercase tracking-wider mb-3">Observed Symptom Severity</label>
+              <div class="flex gap-3">
+                <button onclick="setSeverity('mild',this)" class="sev-btn flex-1 text-base py-3 rounded-xl border border-zinc-200 font-semibold text-zinc-600 hover:border-yellow-400 hover:bg-yellow-50 hover:text-yellow-700 transition-colors">Mild</button>
+                <button onclick="setSeverity('moderate',this)" id="sevModerate" class="sev-btn flex-1 text-base py-3 rounded-xl border border-orange-300 bg-orange-50 font-bold text-orange-700 transition-colors">Moderate</button>
+                <button onclick="setSeverity('severe',this)" class="sev-btn flex-1 text-base py-3 rounded-xl border border-zinc-200 font-semibold text-zinc-600 hover:border-red-400 hover:bg-red-50 hover:text-red-700 transition-colors">Severe</button>
+              </div>
+            </div>
+
+            <!-- Analyse Button — Primary CTA -->
+            <!-- HCI: Affordance — large, high-contrast green CTA with icon is unambiguously actionable -->
+            <!-- Fitts's Law: Full-width button, py-4 height -->
+            <button id="analyseBtn" onclick="runAnalysis()"
+              class="w-full bg-emerald-800 hover:bg-emerald-700 text-white text-lg font-bold py-4 rounded-xl flex items-center justify-center gap-3 transition-colors shadow-sm">
+              <svg id="btnIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+              <span id="btnText" data-en="Analyse Image" data-np="फोटो विश्लेषण गर्नुहोस्">Analyse Image</span>
+            </button>
+
+            <!-- Recent Scans -->
+            <div class="mt-7 pt-6 border-t border-zinc-100">
+              <p class="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-4">Recent Diagnostic History</p>
+              <div class="space-y-2">
+                <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-100">
+                  <span class="text-xl">🍅</span>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-base font-semibold text-zinc-700 truncate">Tomato — Late Blight</p>
+                    <p class="text-sm text-zinc-400">10 Ashwin 2081 · 91% confidence</p>
+                  </div>
+                  <span class="bg-red-100 text-red-600 text-sm font-bold px-2.5 py-1 rounded-full">Severe</span>
+                </div>
+                <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-100">
+                  <span class="text-xl">🥦</span>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-base font-semibold text-zinc-700 truncate">Cauliflower — Downy Mildew</p>
+                    <p class="text-sm text-zinc-400">05 Ashwin 2081 · 87% confidence</p>
+                  </div>
+                  <span class="bg-amber-100 text-amber-600 text-sm font-bold px-2.5 py-1 rounded-full">Moderate</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── RIGHT PANEL: Results ────────────────────────── -->
+        <div class="flex-1 min-w-0">
+
+          <!-- STATE 1: Awaiting Upload -->
+          <!-- HCI: Gulf of Evaluation — user always knows system is waiting for their action -->
+          <div id="stateAwaiting" class="bg-white border border-zinc-200 rounded-2xl flex flex-col items-center justify-center text-center" style="min-height:520px; padding:4rem;">
+            <div class="w-20 h-20 rounded-2xl bg-zinc-100 border-2 border-dashed border-zinc-300 flex items-center justify-center mx-auto mb-6">
+              <svg class="w-9 h-9 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            </div>
+            <p class="text-xl font-bold text-zinc-400 mb-2" data-en="Awaiting upload..." data-np="अपलोडको प्रतीक्षामा...">Awaiting upload...</p>
+            <p class="text-base text-zinc-400 max-w-xs leading-relaxed">Upload a photo on the left and click <strong>"Analyse Image"</strong> to receive an AI-powered disease diagnostic report.</p>
+          </div>
+
+          <!-- STATE 2: Processing (Loading) -->
+          <!-- HCI: Feedback (Norman) — spinner + message shows system is working, preventing re-clicks -->
+          <div id="stateLoading" class="hidden bg-white border border-zinc-200 rounded-2xl flex flex-col items-center justify-center text-center" style="min-height:520px; padding:4rem;">
+            <div class="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-6">
+              <svg class="w-10 h-10 text-emerald-600 spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
+                <path class="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+            </div>
+            <!-- HCI: Informative loading state — tells user WHAT is happening -->
+            <p class="text-xl font-bold text-zinc-700 mb-2">Analysing crop image...</p>
+            <p class="text-base text-zinc-400">Cross-referencing with regional disease database</p>
+            <div class="mt-5 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style="animation-delay:0s"></span>
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style="animation-delay:0.15s"></span>
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-bounce" style="animation-delay:0.3s"></span>
+            </div>
+          </div>
+
+          <!-- STATE 3: Diagnostic Result -->
+          <!-- HCI: Gulf of Evaluation — result is clear, prominent, and actionable -->
+          <div id="stateResult" class="hidden bg-white border border-zinc-200 rounded-2xl overflow-hidden" style="min-height:520px;">
+
+            <!-- Result Header -->
+            <div class="bg-gradient-to-r from-red-600 to-rose-500 px-7 py-6">
+              <div class="flex items-start justify-between">
+                <div>
+                  <div class="flex items-center gap-3 mb-3">
+                    <span class="bg-red-700/50 text-red-100 text-sm font-bold px-3 py-1 rounded-full uppercase tracking-wide">⚠ Disease Detected</span>
+                    <span class="bg-white/20 text-white text-sm font-medium px-3 py-1 rounded-full">Tomato / गोलभेँडा</span>
+                  </div>
+                  <!-- HCI: Large disease name — critical information uses large, bold text -->
+                  <h3 class="text-3xl font-bold text-white mb-1">Early Blight</h3>
+                  <p class="text-red-200 text-lg font-semibold">पातमा डढुवा (Alternaria solani)</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-red-200 text-sm font-medium mb-1">AI Confidence</p>
+                  <!-- Large confidence number for fast evaluation -->
+                  <p class="text-5xl font-bold text-white">94%</p>
+                </div>
+              </div>
+              <!-- Animated confidence bar -->
+              <div class="mt-5">
+                <div class="h-2.5 bg-red-800/40 rounded-full overflow-hidden">
+                  <div id="confBar" class="h-full bg-white rounded-full" style="width:0%"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-7">
+              <!-- Quick stats -->
+              <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="bg-zinc-50 border border-zinc-100 rounded-xl p-4 text-center">
+                  <p class="text-xs text-zinc-400 uppercase tracking-wide mb-1">Severity</p>
+                  <p class="text-lg font-bold text-orange-600">Moderate</p>
+                </div>
+                <div class="bg-zinc-50 border border-zinc-100 rounded-xl p-4 text-center">
+                  <p class="text-xs text-zinc-400 uppercase tracking-wide mb-1">Spread Risk</p>
+                  <p class="text-lg font-bold text-red-600">High</p>
+                </div>
+                <div class="bg-zinc-50 border border-zinc-100 rounded-xl p-4 text-center">
+                  <p class="text-xs text-zinc-400 uppercase tracking-wide mb-1">Crop Loss Risk</p>
+                  <p class="text-lg font-bold text-amber-600">30–40%</p>
+                </div>
+              </div>
+
+              <!-- About -->
+              <div class="mb-6">
+                <h4 class="text-sm font-bold text-zinc-500 uppercase tracking-wider mb-3">About This Disease</h4>
+                <p class="text-base text-zinc-600 leading-relaxed">Early Blight (Alternaria solani) causes dark brown concentric ring lesions on older leaves. High humidity (78%) and warm temperatures (24°C) currently present in Kavre match outbreak criteria.</p>
+              </div>
+
+              <!-- Remedies — stagger-animated -->
+              <div class="mb-6">
+                <h4 class="text-sm font-bold text-zinc-500 uppercase tracking-wider mb-4">Immediate Remedies — Act Within 48 Hours</h4>
+                <div class="space-y-3" id="remedyList">
+                  <div class="remedy flex items-start gap-4 p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+                    <span class="flex-shrink-0 w-7 h-7 rounded-full bg-emerald-600 text-white text-sm flex items-center justify-center font-bold mt-0.5">1</span>
+                    <div>
+                      <p class="text-base font-bold text-emerald-800">Apply Copper Oxychloride (Blitox 50 WP @ 3g/L)</p>
+                      <p class="text-base text-zinc-500 mt-0.5">Spray both leaf surfaces. Repeat every 7 days. Effective against Alternaria.</p>
+                    </div>
+                  </div>
+                  <div class="remedy flex items-start gap-4 p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+                    <span class="flex-shrink-0 w-7 h-7 rounded-full bg-emerald-600 text-white text-sm flex items-center justify-center font-bold mt-0.5">2</span>
+                    <div>
+                      <p class="text-base font-bold text-emerald-800">Remove & Destroy Infected Leaves</p>
+                      <p class="text-base text-zinc-500 mt-0.5">Hand-pick leaves with >30% lesion cover. Burn off-site. Do NOT compost.</p>
+                    </div>
+                  </div>
+                  <div class="remedy flex items-start gap-4 p-4 bg-amber-50 border border-amber-100 rounded-xl">
+                    <span class="flex-shrink-0 w-7 h-7 rounded-full bg-amber-500 text-white text-sm flex items-center justify-center font-bold mt-0.5">3</span>
+                    <div>
+                      <p class="text-base font-bold text-amber-800">Improve Air Circulation</p>
+                      <p class="text-base text-zinc-500 mt-0.5">Stake plants. Remove lower leaves below 30cm from soil. Avoid evening irrigation.</p>
+                    </div>
+                  </div>
+                  <div class="remedy flex items-start gap-4 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                    <span class="flex-shrink-0 w-7 h-7 rounded-full bg-blue-500 text-white text-sm flex items-center justify-center font-bold mt-0.5">4</span>
+                    <div>
+                      <p class="text-base font-bold text-blue-800">Potassium Silicate Foliar Spray (2g/L)</p>
+                      <p class="text-base text-zinc-500 mt-0.5">Strengthens cell walls. Reduces infection severity by 15–25%. Apply weekly.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Buttons — Fitts's Law: large, labelled, high contrast -->
+              <div class="flex gap-3">
+                <button class="flex-1 flex items-center justify-center gap-2 bg-emerald-800 text-white text-base font-bold py-3.5 rounded-xl hover:bg-emerald-700 transition-colors">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                  <span data-en="Ask an Expert" data-np="विशेषज्ञसँग सोध्नुहोस्">Ask an Expert</span>
+                </button>
+                <button class="flex-1 flex items-center justify-center gap-2 border border-zinc-200 text-zinc-700 text-base font-semibold py-3.5 rounded-xl hover:bg-zinc-50 transition-colors">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  Save Report
+                </button>
+                <button onclick="resetAnalysis()" class="px-5 border border-zinc-200 text-zinc-500 rounded-xl hover:bg-zinc-50 transition-colors" title="Start over">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /two-panel -->
+    </main>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     VANILLA JS
+     HCI: Feedback — 1s processing state before result
+          Gulf of Evaluation — user sees system progress
+══════════════════════════════════════════════ -->
+<script>
+  // Language toggle
+  function setLang(lang) {
+    document.getElementById('langEN').classList.toggle('active', lang === 'en');
+    document.getElementById('langNP').classList.toggle('active', lang === 'np');
+    document.querySelectorAll('[data-en]').forEach(el => {
+      el.textContent = lang === 'en' ? el.dataset.en : el.dataset.np;
+    });
+    sessionStorage.setItem('ks_lang', lang);
+  }
+  const savedLang = sessionStorage.getItem('ks_lang');
+  if (savedLang) setLang(savedLang);
+
+  // File handling
+  function handleFile(evt) {
+    const file = evt.target.files[0];
+    if (!file) return;
+    showPreview(file);
+  }
+  function handleDrop(evt) {
+    evt.preventDefault();
+    document.getElementById('dropzone').classList.remove('drag-over');
+    const file = evt.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) showPreview(file);
+  }
+  function showPreview(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('dzDefault').classList.add('hidden');
+      document.getElementById('dzPreview').classList.remove('hidden');
+      document.getElementById('previewImg').src = e.target.result;
+      document.getElementById('previewName').textContent = file.name + ' · ' + (file.size / 1024).toFixed(0) + ' KB';
+    };
+    reader.readAsDataURL(file);
+  }
+  function clearFile() {
+    document.getElementById('fileInput').value = '';
+    document.getElementById('dzDefault').classList.remove('hidden');
+    document.getElementById('dzPreview').classList.add('hidden');
+    document.getElementById('previewImg').src = '';
+  }
+
+  // Severity selector
+  function setSeverity(level, btn) {
+    document.querySelectorAll('.sev-btn').forEach(b => {
+      b.className = 'sev-btn flex-1 text-base py-3 rounded-xl border border-zinc-200 font-semibold text-zinc-600 hover:border-yellow-400 hover:bg-yellow-50 hover:text-yellow-700 transition-colors';
+    });
+    const map = { mild:'border-yellow-400 bg-yellow-50 text-yellow-700', moderate:'border-orange-300 bg-orange-50 text-orange-700', severe:'border-red-400 bg-red-50 text-red-700' };
+    btn.className = 'sev-btn flex-1 text-base py-3 rounded-xl border font-bold transition-colors ' + map[level];
+  }
+
+  // Analysis simulation
+  // HCI: Feedback — shows loading state for 1 second BEFORE revealing result (Norman's Gulf of Evaluation)
+  function runAnalysis() {
+    const btn = document.getElementById('analyseBtn');
+    btn.disabled = true;
+
+    // Show loading state (Feedback principle)
+    document.getElementById('stateAwaiting').classList.add('hidden');
+    document.getElementById('stateResult').classList.add('hidden');
+    document.getElementById('stateLoading').classList.remove('hidden');
+
+    // After 1 second: reveal result
+    setTimeout(() => {
+      document.getElementById('stateLoading').classList.add('hidden');
+      document.getElementById('stateResult').classList.remove('hidden');
+
+      // Animate confidence bar after render
+      setTimeout(() => { document.getElementById('confBar').style.width = '94%'; }, 80);
+
+      btn.disabled = false;
+      document.getElementById('btnText').textContent = 'Re-Analyse';
+    }, 1000);
+  }
+
+  function resetAnalysis() {
+    clearFile();
+    document.getElementById('stateResult').classList.add('hidden');
+    document.getElementById('stateAwaiting').classList.remove('hidden');
+    document.getElementById('confBar').style.width = '0%';
+    document.getElementById('btnText').textContent = 'Analyse Image';
+    document.getElementById('analyseBtn').disabled = false;
+  }
+</script>
+<script src="i18n.js"></script>
+
+</body>
+</html>

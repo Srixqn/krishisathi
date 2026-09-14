@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In — Krishi Sathi | कृषि साथी</title>
+  <meta name="description" content="Sign in to access your Krishi Sathi agricultural digital portal." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','system-ui','sans-serif'],mukta:['Mukta','system-ui','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Mukta:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    .login-bg {
+      background: linear-gradient(135deg, #0a2e1f 0%, #1a4731 40%, #2d6a4f 75%, #40916c 100%);
+      min-height: 100vh;
+    }
+    .glass-card {
+      background: rgba(255,255,255,0.97);
+      backdrop-filter: blur(12px);
+      border-radius: 1.5rem;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+    }
+    .logo-ring {
+      background: linear-gradient(135deg, #065f46, #10b981);
+      box-shadow: 0 0 0 6px rgba(16,185,129,0.18);
+    }
+    /* Decorative blobs */
+    .blob1 { position:absolute; top:-120px; right:-100px; width:420px; height:420px; border-radius:50%; background:rgba(16,185,129,0.10); pointer-events:none; }
+    .blob2 { position:absolute; bottom:-80px; left:-80px; width:300px; height:300px; border-radius:50%; background:rgba(255,255,255,0.05); pointer-events:none; }
+    /* Shake animation for error */
+    @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
+    .shake { animation: shake 0.4s ease; }
+    /* Eye toggle */
+    #pwToggle { cursor:pointer; }
+  </style>
+</head>
+<body class="bg-zinc-50 font-inter text-zinc-900">
+
+<div class="login-bg flex items-center justify-center min-h-screen px-4 relative overflow-hidden">
+  <div class="blob1"></div>
+  <div class="blob2"></div>
+
+  <!-- Card -->
+  <div class="glass-card w-full max-w-md px-10 py-12 relative z-10">
+
+    <!-- Logo -->
+    <div class="flex flex-col items-center mb-10">
+      <div class="w-16 h-16 rounded-2xl logo-ring flex items-center justify-center mb-4">
+        <svg width="32" height="32" viewBox="0 0 20 20" fill="none">
+          <path d="M10 2C6 2 3 6 3 10c0 3 1.5 5.5 4 7" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M10 2c4 0 7 4 7 8 0 3-1.5 5.5-4 7" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M10 18V8" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M6 12l4-4 4 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="text-center">
+        <p class="text-xl font-bold text-emerald-900 leading-tight tracking-wide">KRISHI SATHI · कृषि साथी</p>
+        <p class="text-base text-emerald-700 font-medium mt-0.5" data-i18n="brand-tagline">Agricultural Digital Portal</p>
+      </div>
+    </div>
+
+    <!-- Language Toggle -->
+    <div class="flex rounded-xl border border-zinc-200 overflow-hidden text-sm font-semibold mb-8">
+      <button id="langEN" onclick="setLang('en')" class="lang-btn active flex-1 py-3 text-center hover:bg-emerald-50">English</button>
+      <button id="langNP" onclick="setLang('np')" class="lang-btn flex-1 py-3 text-center text-zinc-500 hover:bg-emerald-50">नेपाली</button>
+    </div>
+
+    <!-- Heading -->
+    <h1 class="text-2xl font-bold text-zinc-900 mb-1" data-i18n="login-title">Sign in to Krishi Sathi</h1>
+    <p class="text-base text-zinc-500 mb-8" data-i18n="login-sub">Access your agricultural digital portal</p>
+
+    <!-- Error Banner (hidden by default) -->
+    <!-- HCI: Immediate, inline error feedback — Nielsen Heuristic #9 -->
+    <div id="loginError" class="hidden flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3.5 mb-6">
+      <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <p class="text-base font-medium text-red-700" id="loginErrorText" data-i18n="login-error">Invalid email or password. Please try again.</p>
+    </div>
+
+    <!-- Form -->
+    <form id="loginForm" onsubmit="handleLogin(event)" novalidate>
+      <!-- Email -->
+      <div class="mb-5">
+        <label class="ks-label" for="loginEmail" data-i18n="login-email-label">Email Address</label>
+        <input id="loginEmail" type="email" autocomplete="email"
+          class="ks-input" placeholder="ramsharma123@gmail.com"
+          data-i18n-placeholder="login-email-label" required />
+      </div>
+
+      <!-- Password -->
+      <div class="mb-6">
+        <label class="ks-label" for="loginPw" data-i18n="login-pw-label">Password</label>
+        <div class="relative">
+          <input id="loginPw" type="password" autocomplete="current-password"
+            class="ks-input pr-12" placeholder="••••••••" required />
+          <!-- Show/hide password — HCI: User control -->
+          <button type="button" id="pwToggle" onclick="togglePwVisibility()"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 p-1 rounded transition-colors" tabindex="-1" aria-label="Toggle password visibility">
+            <svg id="eyeIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="flex justify-end mt-2">
+          <a href="#" class="text-sm text-emerald-700 font-medium hover:underline" data-i18n="login-forgot">Forgot password?</a>
+        </div>
+      </div>
+
+      <!-- Submit — Fitts's Law: full-width, large button -->
+      <button type="submit" id="loginBtn"
+        class="ks-btn-primary flex items-center justify-center gap-2">
+        <span id="loginBtnText" data-i18n="login-btn">Sign In</span>
+        <svg id="loginSpinner" class="hidden w-5 h-5 ks-spin" fill="none" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25"/>
+          <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" class="opacity-75"/>
+        </svg>
+      </button>
+    </form>
+
+    <!-- Demo hint — HCI: Help and documentation (Nielsen #10) -->
+    <div class="mt-6 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-center">
+      <p class="text-sm text-zinc-500" data-i18n="login-demo-hint">Demo: ramsharma123@gmail.com / ramsharma@123</p>
+    </div>
+
+  </div><!-- /card -->
+</div>
+
+<script src="i18n.js"></script>
+<script>
+  /* ── Login Auth ──────────────────────────────────────
+     HCI: Error prevention + informative error messages
+     Norman: immediate feedback on incorrect credentials
+  ─────────────────────────────────────────────────── */
+  const VALID_EMAIL    = 'ramsharma123@gmail.com';
+  const VALID_PASSWORD = 'ramsharma@123';
+
+  function handleLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const pw    = document.getElementById('loginPw').value;
+    const btn   = document.getElementById('loginBtn');
+    const spinner = document.getElementById('loginSpinner');
+    const errBox  = document.getElementById('loginError');
+    const form    = document.getElementById('loginForm');
+
+    // Hide previous error
+    errBox.classList.add('hidden');
+    document.getElementById('loginEmail').classList.remove('error');
+    document.getElementById('loginPw').classList.remove('error');
+
+    // Show loading state
+    btn.disabled = true;
+    spinner.classList.remove('hidden');
+
+    // Simulate async auth check (600ms)
+    setTimeout(() => {
+      spinner.classList.add('hidden');
+      btn.disabled = false;
+
+      if (email === VALID_EMAIL && pw === VALID_PASSWORD) {
+        // ✓ Success — redirect to dashboard
+        sessionStorage.setItem('ks_loggedIn', 'true');
+        window.location.href = 'index.html';
+      } else {
+        // ✗ Failure — show inline error + shake
+        errBox.classList.remove('hidden');
+        document.getElementById('loginEmail').classList.add('error');
+        document.getElementById('loginPw').classList.add('error');
+        form.classList.add('shake');
+        setTimeout(() => form.classList.remove('shake'), 500);
+      }
+    }, 600);
+  }
+
+  function togglePwVisibility() {
+    const input = document.getElementById('loginPw');
+    const icon  = document.getElementById('eyeIcon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>`;
+    } else {
+      input.type = 'password';
+      icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+    }
+  }
+</script>
+</body>
+</html>

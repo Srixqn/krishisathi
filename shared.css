@@ -1,0 +1,194 @@
+/**
+ * Krishi Sathi — Shared Stylesheet
+ * Loaded by every page via <link rel="stylesheet" href="shared.css">
+ */
+
+/* ── Google Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Mukta:wght@400;600;700&display=swap');
+
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+
+/* ── Font Classes ── */
+body.font-inter  { font-family: 'Inter', system-ui, sans-serif; }
+body.font-mukta  { font-family: 'Mukta', system-ui, sans-serif; }
+body             { font-family: 'Inter', system-ui, sans-serif; }
+
+/* ── Sidebar Navigation ── */
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 0.9375rem;
+  color: #52525b;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.sidebar-link:hover { background-color: #d1fae5; color: #065f46; }
+.nav-active {
+  background-color: #d1fae5;
+  color: #065f46;
+  font-weight: 600;
+  border-left: 4px solid #065f46;
+}
+
+/* ── Language Toggle ── */
+.lang-btn { transition: background-color 0.15s ease, color 0.15s ease; cursor: pointer; }
+.lang-btn.active { background-color: #065f46 !important; color: #ffffff !important; font-weight: 700; }
+
+/* ── Modal System ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal-overlay.hidden { display: none; }
+.modal-box {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalIn 0.22s ease;
+}
+.modal-box-lg { max-width: 680px; }
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Side Panel (Slide-in) ── */
+.side-panel {
+  position: fixed;
+  right: 0; top: 0; bottom: 0;
+  width: 420px;
+  background: white;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+  z-index: 50;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+  overflow-y: auto;
+}
+.side-panel.open { transform: translateX(0); }
+.side-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 49;
+  display: none;
+}
+.side-panel-backdrop.open { display: block; }
+
+/* ── Card Hover Lift ── */
+.card-hover { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+.card-hover:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.10); }
+
+/* ── Button click press effect ── */
+button { cursor: pointer; }
+button:active { transform: scale(0.96); }
+
+/* ── Spinner animation ── */
+@keyframes ks-spin { to { transform: rotate(360deg); } }
+.ks-spin { animation: ks-spin 0.9s linear infinite; }
+
+/* ── Progress bar animation ── */
+.prog { transition: width 0.7s ease; }
+
+/* ── Remedy stagger animation ── */
+.remedy { animation: slideInLeft 0.35s ease forwards; opacity: 0; }
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.remedy:nth-child(1) { animation-delay: 0.05s; }
+.remedy:nth-child(2) { animation-delay: 0.15s; }
+.remedy:nth-child(3) { animation-delay: 0.25s; }
+.remedy:nth-child(4) { animation-delay: 0.35s; }
+
+/* ── Filter chips ── */
+.filter-chip { transition: all 0.15s ease; }
+.filter-chip.active { background-color: #065f46; color: #fff; border-color: #065f46; }
+
+/* ── Segment control ── */
+.seg-btn { transition: all 0.15s ease; }
+.seg-btn.active { background-color: #1a4731; color: #fff; }
+
+/* ── Row hover ── */
+.row-hover { transition: background-color 0.1s ease; }
+.row-hover:hover { background-color: #f8fafc; }
+
+/* ── Dropzone ── */
+.dropzone { transition: border-color 0.2s ease, background-color 0.2s ease; cursor: pointer; }
+.dropzone:hover, .dropzone.drag-over { border-color: #059669; background-color: #f0fdf4; }
+
+/* ── Toggle switch ── */
+.toggle-track { transition: background-color 0.2s ease; }
+.toggle-knob  { transition: transform 0.2s ease; }
+
+/* ── Notification badge pulse ── */
+.badge-pulse { animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* ── Featured banner gradient ── */
+.featured-banner { background: linear-gradient(135deg, #1a4731 0%, #2d6a4f 45%, #40916c 100%); }
+
+/* ── Form elements ── */
+.ks-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 0.75rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  font-family: inherit;
+}
+.ks-input:focus { border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,0.12); }
+.ks-input.error { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.10); }
+
+.ks-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #52525b;
+  margin-bottom: 0.4rem;
+}
+
+.ks-btn-primary {
+  width: 100%;
+  background-color: #065f46;
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.875rem 1.5rem;
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.ks-btn-primary:hover { background-color: #047857; }
+.ks-btn-primary:active { transform: scale(0.97); }
+
+.ks-btn-secondary {
+  background-color: transparent;
+  border: 1.5px solid #e4e4e7;
+  color: #52525b;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.ks-btn-secondary:hover { background-color: #f4f4f5; }
+.ks-btn-secondary:active { transform: scale(0.97); }

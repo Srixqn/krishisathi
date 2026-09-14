@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Crops — Krishi Sathi | कृषि साथी</title>
+  <meta name="description" content="Manage your crop records, track growth progress, and schedule farm tasks on Krishi Sathi." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','system-ui','sans-serif'],mukta:['Mukta','system-ui','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Mukta:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="shared.css" />
+</head>
+<body class="bg-zinc-50 font-inter text-zinc-900">
+
+<!-- ══ MODALS ══ -->
+<!-- Add Crop Modal -->
+<div id="modal-add-crop" class="modal-overlay hidden">
+  <div class="modal-box p-7">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-xl font-bold text-zinc-900" data-i18n="modal-add-crop-title">Add New Crop</h2>
+      <button onclick="closeModal('modal-add-crop')" class="w-9 h-9 rounded-lg border border-zinc-200 flex items-center justify-center hover:bg-zinc-100 active:scale-95 transition-all">
+        <svg class="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="space-y-4">
+      <div><label class="ks-label" data-i18n="modal-crop-name-label">Crop Name</label><input type="text" class="ks-input" placeholder="e.g. Tomato / टमाटर" /></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="ks-label" data-i18n="modal-crop-variety-label">Variety</label><input type="text" class="ks-input" placeholder="e.g. Srijana F1" /></div>
+        <div><label class="ks-label" data-i18n="modal-crop-land-label">Land Plot</label><input type="text" class="ks-input" placeholder="e.g. Plot A" /></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="ks-label" data-i18n="modal-crop-planted-label">Date Planted</label><input type="date" class="ks-input" /></div>
+        <div><label class="ks-label" data-i18n="modal-crop-harvest-label">Harvest Date</label><input type="date" class="ks-input" /></div>
+      </div>
+      <div><label class="ks-label" data-i18n="modal-crop-area-label">Area (Ropani)</label><input type="number" min="0.5" step="0.5" class="ks-input" placeholder="e.g. 1.5" /></div>
+    </div>
+    <div class="flex gap-3 mt-7">
+      <button onclick="saveCrop()" class="ks-btn-primary active:scale-95" data-i18n="modal-save">Save Crop</button>
+      <button onclick="closeModal('modal-add-crop')" class="ks-btn-secondary active:scale-95" data-i18n="modal-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Task Modal -->
+<div id="modal-add-task" class="modal-overlay hidden">
+  <div class="modal-box p-7">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-xl font-bold text-zinc-900" data-i18n="modal-add-task-title">Add Farm Task</h2>
+      <button onclick="closeModal('modal-add-task')" class="w-9 h-9 rounded-lg border border-zinc-200 flex items-center justify-center hover:bg-zinc-100 active:scale-95 transition-all">
+        <svg class="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="ks-label" data-i18n="modal-task-crop-label">Select Crop</label>
+        <select class="ks-input">
+          <option>🍅 Tomato / गोलभेँडा</option>
+          <option>🥔 Potato / आलु</option>
+          <option>🥦 Cauliflower / काउली</option>
+        </select>
+      </div>
+      <div><label class="ks-label" data-i18n="modal-task-desc-label">Task Description</label><input type="text" class="ks-input" placeholder="e.g. Apply fungicide spray" /></div>
+      <div><label class="ks-label" data-i18n="modal-task-due-label">Due Date</label><input type="date" class="ks-input" /></div>
+    </div>
+    <div class="flex gap-3 mt-7">
+      <button onclick="saveTask()" class="ks-btn-primary active:scale-95" data-i18n="modal-task-save">Save Task</button>
+      <button onclick="closeModal('modal-add-task')" class="ks-btn-secondary active:scale-95" data-i18n="modal-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Crop Detail Side Panel -->
+<div id="panel-backdrop" class="side-panel-backdrop" onclick="closePanel()"></div>
+<div id="crop-panel" class="side-panel">
+  <div class="px-7 py-6 border-b border-zinc-100 flex items-center justify-between sticky top-0 bg-white z-10">
+    <h3 class="text-xl font-bold text-zinc-900" id="panelTitle">Tomato — Plot A</h3>
+    <button onclick="closePanel()" class="w-9 h-9 rounded-lg border border-zinc-200 flex items-center justify-center hover:bg-zinc-100 active:scale-95 transition-all" aria-label="Close">
+      <svg class="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div id="panelContent" class="px-7 py-6 space-y-6">
+    <!-- Populated by JS -->
+  </div>
+</div>
+
+<div class="flex h-screen overflow-hidden">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="flex-shrink-0 bg-white border-r border-zinc-200 flex flex-col" style="width:272px;">
+    <div class="px-6 pt-7 pb-5 border-b border-zinc-100">
+      <div class="flex items-center gap-3 mb-1">
+        <div class="w-10 h-10 rounded-lg bg-emerald-800 flex items-center justify-center flex-shrink-0">
+          <svg width="22" height="22" viewBox="0 0 20 20" fill="none"><path d="M10 2C6 2 3 6 3 10c0 3 1.5 5.5 4 7" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M10 2c4 0 7 4 7 8 0 3-1.5 5.5-4 7" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M10 18V8" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M6 12l4-4 4 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-emerald-900 leading-tight tracking-wide" data-i18n="brand-name">KRISHI SATHI</p>
+          <p class="text-sm text-emerald-700 font-semibold leading-tight" data-i18n="brand-nepali">कृषि साथी</p>
+        </div>
+      </div>
+      <p class="text-xs text-zinc-400 tracking-widest uppercase mt-2" data-i18n="brand-tagline">Agricultural Digital Portal</p>
+    </div>
+    <!-- Language toggle -->
+    <div class="px-5 py-4 border-b border-zinc-100">
+      <p class="text-xs uppercase tracking-widest text-zinc-400 mb-2 font-medium" data-i18n="lang-label">Language / भाषा</p>
+      <div class="flex rounded-lg border border-zinc-200 overflow-hidden text-sm font-semibold">
+        <button id="langEN" onclick="setLang('en')" class="lang-btn active flex-1 py-2.5 text-center hover:bg-emerald-50">English</button>
+        <button id="langNP" onclick="setLang('np')" class="lang-btn flex-1 py-2.5 text-center text-zinc-500 hover:bg-emerald-50">नेपाली</button>
+      </div>
+    </div>
+    <!-- Nav -->
+    <nav class="flex-1 px-3 py-5 overflow-y-auto space-y-0.5">
+      <p class="text-xs uppercase tracking-widest text-zinc-400 px-3 mb-2 font-medium" data-i18n="nav-menu-heading">Main Menu</p>
+
+      <a href="index.html" class="sidebar-link ">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span data-i18n="nav-dashboard">Dashboard</span></a>
+
+      <a href="crops.html" class="sidebar-link nav-active">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        <span data-i18n="nav-crops">My Crops</span></a>
+
+      <a href="disease.html" class="sidebar-link ">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        <span data-i18n="nav-disease">Disease Check</span></a>
+
+      <a href="forecast.html" class="sidebar-link ">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg>
+        <span data-i18n="nav-forecast">7-Day Forecast</span></a>
+
+      <a href="marketplace.html" class="sidebar-link ">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        <span data-i18n="nav-marketplace">Marketplace</span></a>
+
+      <a href="rental.html" class="sidebar-link ">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span data-i18n="nav-rental">Equipment Rental</span></a>
+
+      <a href="resources.html" class="sidebar-link ">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
+        <span data-i18n="nav-resources">Farming Resources</span></a>
+
+      <div class="pt-4 mt-4 border-t border-zinc-100">
+        <p class="text-xs uppercase tracking-widest text-zinc-400 px-3 mb-2 font-medium" data-i18n="nav-updates-heading">Updates & Account</p>
+
+        <a href="alerts.html" class="sidebar-link ">
+          <svg class="w-5 h-5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <span data-i18n="nav-alerts">Active Alerts</span></a>
+
+        <a href="notifications.html" class="sidebar-link ">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span data-i18n="nav-notifications">Notifications</span></a>
+
+        <a href="profile.html" class="sidebar-link ">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          <span data-i18n="nav-profile">Profile & Activity</span></a>
+      </div>
+    </nav>
+    <!-- Footer user -->
+    <div class="px-5 py-4 border-t border-zinc-100">
+      <a href="profile.html" class="flex items-center gap-3 hover:bg-zinc-50 rounded-lg p-2 transition-colors">
+        <div class="w-9 h-9 rounded-full bg-emerald-700 flex items-center justify-center text-white text-base font-bold flex-shrink-0">र</div>
+        <div><p class="text-sm font-semibold text-zinc-800">राम शर्मा</p><p class="text-xs text-zinc-400">Farmer · Kavre</p></div>
+      </a>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header class="bg-white border-b border-zinc-200 px-8 py-4 flex items-center justify-between flex-shrink-0">
+      <div>
+        <p class="text-xs uppercase tracking-widest text-zinc-400 mb-0.5 font-medium" data-i18n="page-crops-sub">Crop Management</p>
+        <h1 class="text-2xl font-bold text-zinc-900" data-i18n="page-crops-title">My Crops</h1>
+      </div>
+<div class="flex items-center gap-3">
+        <!-- Weather & Location Pill -->
+        <a href="forecast.html" class="hidden md:flex items-center gap-2 bg-emerald-50/80 border border-emerald-200/60 rounded-xl px-3.5 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-100/80 transition-colors">
+          <span class="text-emerald-700 font-bold">📍 Kavre</span>
+          <span class="text-emerald-300">|</span>
+          <span class="text-amber-600">☀️ 24°C</span>
+        </a>
+        <!-- Notifications bell -->
+        <a href="notifications.html" class="relative w-11 h-11 rounded-xl border border-zinc-200 bg-white flex items-center justify-center hover:bg-emerald-50 hover:border-emerald-300 transition-colors" aria-label="Notifications">
+          <svg class="w-5 h-5 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center badge-pulse">4</span>
+        </a>
+        <!-- User chip -->
+        <a href="profile.html" class="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2 hover:border-emerald-300 hover:bg-emerald-50 transition-colors">
+          <div class="w-8 h-8 rounded-full bg-emerald-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">र</div>
+          <div>
+            <p class="text-sm font-semibold text-zinc-800 leading-tight">राम शर्मा</p>
+            <p class="text-xs text-zinc-500 leading-tight">Farmer ID: #4092</p>
+          </div>
+        </a>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto px-8 py-7">
+
+      <!-- Filter Bar -->
+      <div class="bg-white border border-zinc-200 rounded-xl px-6 py-5 mb-7 flex items-center gap-4">
+        <div class="flex-1 relative">
+          <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input type="text" id="cropSearch" oninput="filterCrops()" class="ks-input pl-12" data-i18n-placeholder="crop-search-placeholder" placeholder="Search crops by name..." />
+        </div>
+        <div>
+          <label class="text-xs font-bold text-zinc-400 uppercase tracking-wider block mb-1" data-i18n="crop-filter-status">Status</label>
+          <select id="statusFilter" onchange="filterCrops()" class="ks-input py-2 min-w-[160px]">
+            <option value="all" data-i18n="crop-filter-all">All Status</option>
+            <option value="growing" data-i18n="crop-filter-growing">Growing</option>
+            <option value="harvest" data-i18n="crop-filter-harvest">Harvest Ready</option>
+            <option value="planted" data-i18n="crop-filter-planted">Planted</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-zinc-400 uppercase tracking-wider block mb-1" data-i18n="crop-sort-label">Sort By</label>
+          <select id="sortBy" onchange="sortCrops()" class="ks-input py-2 min-w-[180px]">
+            <option value="planted" data-i18n="crop-sort-planted">Planting Date</option>
+            <option value="harvest" data-i18n="crop-sort-harvest">Harvest Date</option>
+            <option value="name" data-i18n="crop-sort-name">Crop Name</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Crop Cards -->
+      <div class="mb-5 flex items-center justify-between">
+        <h2 class="text-xl font-bold text-zinc-800" data-i18n="crops-season-heading">Active Crops — Kharif 2081 Season</h2>
+        <p class="text-base text-zinc-400" id="cropCount" data-i18n="crops-count-text">3 crops registered across 4 Ropani</p>
+      </div>
+
+      <div id="cropGrid" class="grid grid-cols-3 gap-5 mb-7">
+        <!-- Crop 1: Tomato -->
+        <div class="crop-card bg-white border border-zinc-200 rounded-2xl p-6 card-hover"
+          data-status="growing" data-name="tomato" data-planted="2081-04-15" data-harvest="2081-08-01">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <span class="text-4xl">🍅</span>
+              <div>
+                <h3 class="text-lg font-bold text-zinc-900">Tomato</h3>
+                <p class="text-sm text-zinc-400">Srijana F1 Hybrid</p>
+              </div>
+            </div>
+            <span class="bg-emerald-100 text-emerald-700 text-sm font-bold px-3 py-1 rounded-full">Growing</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-4 text-sm">
+            <div><p class="text-zinc-400 text-xs uppercase tracking-wide font-medium mb-0.5" data-i18n="crop-planted-label">Planted</p><p class="font-semibold text-zinc-700">15 Shrawan 2081</p></div>
+            <div><p class="text-zinc-400 text-xs uppercase tracking-wide font-medium mb-0.5" data-i18n="crop-harvest-label">Harvest</p><p class="font-semibold text-zinc-700">01 Bhadra 2081</p></div>
+            <div><p class="text-zinc-400 text-xs uppercase tracking-wide font-medium mb-0.5" data-i18n="crop-land-label">Land</p><p class="font-semibold text-zinc-700">Plot A · 1.5 Rop</p></div>
+          </div>
+          <div class="mb-4">
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-zinc-500" data-i18n="crop-progress-label">Growth Progress</span>
+              <span class="font-bold text-emerald-700">72%</span>
+            </div>
+            <div class="h-2.5 bg-zinc-100 rounded-full overflow-hidden">
+              <div class="h-full bg-emerald-500 rounded-full prog" style="width:72%"></div>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="openCropPanel('Tomato — Plot A','🍅','Srijana F1','15 Shrawan 2081','01 Bhadra 2081','1.5 Ropani','72%','Growing')"
+              class="flex-1 text-sm font-bold border border-emerald-200 text-emerald-700 py-2.5 rounded-xl hover:bg-emerald-50 active:scale-95 transition-all" data-i18n="crop-btn-details">View Details</button>
+            <button onclick="openCropPanel('Tomato — Activity Log','🍅','Activity','--','--','--','72%','Growing')"
+              class="flex-1 text-sm font-semibold border border-zinc-200 text-zinc-600 py-2.5 rounded-xl hover:bg-zinc-50 active:scale-95 transition-all" data-i18n="crop-btn-log">Log Activity</button>
+          </div>
+        </div>
+
+        <!-- Crop 2: Potato -->
+        <div class="crop-card bg-white border border-zinc-200 rounded-2xl p-6 card-hover"
+          data-status="harvest" data-name="potato" data-planted="2081-03-01" data-harvest="2081-07-15">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <span class="text-4xl">🥔</span>
+              <div>
+                <h3 class="text-lg font-bold text-zinc-900">Potato</h3>
+                <p class="text-sm text-zinc-400">Desiree Variety</p>
+              </div>
+            </div>
+            <span class="bg-amber-100 text-amber-700 text-sm font-bold px-3 py-1 rounded-full">Harvest Ready</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-4 text-sm">
+            <div><p class="text-zinc-400 text-xs uppercase tracking-wide font-medium mb-0.5" data-i18n="crop-planted-label">Planted</p><p class="font-semibold text-zinc-700">01 Chaitra 2080</p></div>
+            <div><p class="text-zinc-400 text-xs uppercase tracking-wide font-medium mb-0.5" data-i18n="crop-harvest-label">Harvest</p><p class="font-semibold text-zinc-700">15 Ashad 2081</p></div>
+            <div><p class="text-zinc-400 text-xs uppercase tracking-wide font-medium mb-0.5" data-i18n="crop-land-label">Land</p><p class="font-semibold text-zinc-700">Plot B · 2 Rop</p></div>
+          </div>
+          <div class="mb-4">
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-zinc-500" data-i18n="crop-progress-label">Growth Progress</span>
+              <span class="font-bold text-amber-600">100%</span>
+            </div>
+            <div class="h-2.5 bg-zinc-100 rounded-full overflow-hidden">
+              <div class="h-full bg-amber-400 rounded-full prog" style="width:100%"></div>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="openCropPanel('Potato — Plot B','🥔','Desiree','01 Chaitra 2080','15 Ashad 2081','2 Ropani','100%','Harvest Ready')"
+              class="flex-1 text-sm font-bold border border-emerald-200 text-emerald-700 py-2.5 rounded-xl hover:bg-emerald-50 active:scale-95 transition-all" data-i18n="crop-btn-details">View Details</button>
+            <button onclick="openCropPanel('Potato — Activity Log','🥔','Activity','--','--','--','100%','Harvest Ready')"
+              class="flex-1 text-sm font-semibold border border-zinc-200 text-zinc-600 py-2.5 rounded-xl hover:bg-zinc-50 active:scale-95 transition-all" data-i18n="crop-btn-log">Log Activity</button>
+          </div>
+        </div>
+
+        <!-- Crop 3: Cauliflower -->
+        <div class="crop-card bg-white border border-zinc-200 rounded-2xl p-6 card-hover"
+          data-status="planted" data-name="cauliflower" data-planted="2081-05-10" data-harvest="2081-09-20">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <span class="text-4xl">🥦</span>
+              <div>
+                <h3 class="text-lg font-bold text-zinc-900">Cauliflower</h3>
+                <p class="text-sm text-zinc-400">White Top F1</p>
+              </div>
+            </div>
+            <span class="bg-blue-100 text-blue-700 text-sm font-bold px-3 py-1 rounded-full">Planted</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-4 text-sm">
+            <div><p class="text-zinc-400 text-xs uppercase tracking-wide font-medium mb-0.5" data-i18n="crop-planted-label">Planted</p><p class="font-semibold text-zinc-700">10 Jestha 2081</p></div>
+            <div><p class="text-zinc-400 text-xs uppercase tracking-wide font-medium mb-0.5" data-i18n="crop-harvest-label">Harvest</p><p class="font-semibold text-zinc-700">20 Ashwin 2081</p></div>
+            <div><p class="text-zinc-400 text-xs uppercase tracking-wide font-medium mb-0.5" data-i18n="crop-land-label">Land</p><p class="font-semibold text-zinc-700">Plot C · 0.5 Rop</p></div>
+          </div>
+          <div class="mb-4">
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-zinc-500" data-i18n="crop-progress-label">Growth Progress</span>
+              <span class="font-bold text-blue-600">35%</span>
+            </div>
+            <div class="h-2.5 bg-zinc-100 rounded-full overflow-hidden">
+              <div class="h-full bg-blue-400 rounded-full prog" style="width:35%"></div>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="openCropPanel('Cauliflower — Plot C','🥦','White Top F1','10 Jestha 2081','20 Ashwin 2081','0.5 Ropani','35%','Planted')"
+              class="flex-1 text-sm font-bold border border-emerald-200 text-emerald-700 py-2.5 rounded-xl hover:bg-emerald-50 active:scale-95 transition-all" data-i18n="crop-btn-details">View Details</button>
+            <button onclick="openCropPanel('Cauliflower — Activity','🥦','Activity','--','--','--','35%','Planted')"
+              class="flex-1 text-sm font-semibold border border-zinc-200 text-zinc-600 py-2.5 rounded-xl hover:bg-zinc-50 active:scale-95 transition-all" data-i18n="crop-btn-log">Log Activity</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- No-results -->
+      <div id="noResults" class="hidden bg-white border border-zinc-200 rounded-2xl p-12 text-center mb-7">
+        <p class="text-4xl mb-3">🌱</p>
+        <p class="text-xl font-semibold text-zinc-700 mb-1" data-i18n="crop-no-results-title">No crops match your filter</p>
+        <p class="text-base text-zinc-400 mb-4" data-i18n="crop-no-results-desc">Try changing the status filter or clearing your search.</p>
+        <button onclick="clearCropFilters()" class="ks-btn-secondary active:scale-95 w-auto px-6" data-i18n="crop-clear-filter">Clear Filters</button>
+      </div>
+
+      <!-- Task Table -->
+      <div class="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
+        <div class="px-7 py-5 border-b border-zinc-100 flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-zinc-800" data-i18n="tasks-heading">Upcoming Farm Tasks</h2>
+            <p class="text-sm text-zinc-400 mt-0.5" data-i18n="tasks-sub">All scheduled activities across your crops</p>
+          </div>
+          <!-- Add Task → opens modal -->
+          <button onclick="openModal('modal-add-task')"
+            class="flex items-center gap-2 border border-emerald-200 text-emerald-700 text-base font-bold px-5 py-2.5 rounded-xl hover:bg-emerald-50 active:scale-95 transition-all" data-i18n="tasks-add">
+            + Add Task
+          </button>
+        </div>
+        <table class="w-full text-base">
+          <thead class="bg-zinc-50 border-b border-zinc-200">
+            <tr>
+              <th class="text-left px-6 py-3.5 text-sm font-bold text-zinc-400 uppercase tracking-wide" data-i18n="task-col-crop">Crop</th>
+              <th class="text-left px-6 py-3.5 text-sm font-bold text-zinc-400 uppercase tracking-wide" data-i18n="task-col-task">Scheduled Task</th>
+              <th class="text-left px-6 py-3.5 text-sm font-bold text-zinc-400 uppercase tracking-wide" data-i18n="task-col-due">Due Date</th>
+              <th class="text-left px-6 py-3.5 text-sm font-bold text-zinc-400 uppercase tracking-wide" data-i18n="task-col-status">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-zinc-100">
+            <tr class="row-hover">
+              <td class="px-6 py-4 font-semibold text-zinc-700">🍅 Tomato</td>
+              <td class="px-6 py-4 text-zinc-700">Apply Copper Oxychloride fungicide</td>
+              <td class="px-6 py-4 text-zinc-600">14 Ashwin 2081</td>
+              <td class="px-6 py-4"><span class="bg-red-100 text-red-700 text-sm font-bold px-3 py-1.5 rounded-full" data-i18n="status-urgent">⚠ Urgent</span></td>
+            </tr>
+            <tr class="row-hover">
+              <td class="px-6 py-4 font-semibold text-zinc-700">🥔 Potato</td>
+              <td class="px-6 py-4 text-zinc-700">Harvest — begin collection this week</td>
+              <td class="px-6 py-4 text-zinc-600">16 Ashwin 2081</td>
+              <td class="px-6 py-4"><span class="bg-amber-100 text-amber-700 text-sm font-bold px-3 py-1.5 rounded-full" data-i18n="status-pending">Pending</span></td>
+            </tr>
+            <tr class="row-hover">
+              <td class="px-6 py-4 font-semibold text-zinc-700">🥦 Cauliflower</td>
+              <td class="px-6 py-4 text-zinc-700">Top dressing — urea 50 kg/Ropani</td>
+              <td class="px-6 py-4 text-zinc-600">20 Ashwin 2081</td>
+              <td class="px-6 py-4"><span class="bg-blue-100 text-blue-700 text-sm font-bold px-3 py-1.5 rounded-full" data-i18n="status-scheduled">Scheduled</span></td>
+            </tr>
+            <tr class="row-hover">
+              <td class="px-6 py-4 font-semibold text-zinc-700">🍅 Tomato</td>
+              <td class="px-6 py-4 text-zinc-700">Stake plants and remove lower leaves</td>
+              <td class="px-6 py-4 text-zinc-600">22 Ashwin 2081</td>
+              <td class="px-6 py-4"><span class="bg-emerald-100 text-emerald-700 text-sm font-bold px-3 py-1.5 rounded-full" data-i18n="status-on-track">✓ On Track</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="i18n.js"></script>
+<script>
+  /* ── Crop Filter & Sort ───────────────────────────── */
+  function filterCrops() {
+    const q      = document.getElementById('cropSearch').value.toLowerCase();
+    const status = document.getElementById('statusFilter').value;
+    const cards  = document.querySelectorAll('.crop-card');
+    let visible  = 0;
+
+    cards.forEach(c => {
+      const nameMatch   = !q || c.dataset.name.includes(q);
+      const statusMatch = status === 'all' || c.dataset.status === status;
+      const show        = nameMatch && statusMatch;
+      c.style.display   = show ? '' : 'none';
+      if (show) visible++;
+    });
+
+    document.getElementById('noResults').classList.toggle('hidden', visible > 0);
+    document.getElementById('cropCount').textContent = `${visible} crop${visible !== 1 ? 's' : ''} shown`;
+  }
+
+  function sortCrops() {
+    const sortBy = document.getElementById('sortBy').value;
+    const grid   = document.getElementById('cropGrid');
+    const cards  = Array.from(grid.querySelectorAll('.crop-card'));
+
+    cards.sort((a, b) => {
+      if (sortBy === 'name')    return a.dataset.name.localeCompare(b.dataset.name);
+      if (sortBy === 'planted') return a.dataset.planted.localeCompare(b.dataset.planted);
+      if (sortBy === 'harvest') return a.dataset.harvest.localeCompare(b.dataset.harvest);
+      return 0;
+    });
+    cards.forEach(c => grid.appendChild(c));
+  }
+
+  function clearCropFilters() {
+    document.getElementById('cropSearch').value = '';
+    document.getElementById('statusFilter').value = 'all';
+    filterCrops();
+  }
+
+  /* ── Crop Detail Side Panel ──────────────────────── */
+  const PANEL_ACTIVITIES = {
+    'Tomato': [
+      { date:'10 Ashwin 2081', act:'Applied Blitox 50 WP fungicide' },
+      { date:'05 Ashwin 2081', act:'Staked main shoots, removed suckers' },
+      { date:'28 Bhadra 2081', act:'Top dressed with urea 40 kg' }
+    ],
+    'Potato': [
+      { date:'08 Ashwin 2081', act:'Hilling completed for all rows' },
+      { date:'20 Bhadra 2081', act:'Applied DAP 30 kg/Ropani' }
+    ],
+    'Cauliflower': [
+      { date:'12 Ashwin 2081', act:'Transplanted seedlings (6"×6" spacing)' }
+    ]
+  };
+
+  function openCropPanel(title, emoji, variety, planted, harvest, area, progress, status) {
+    document.getElementById('panelTitle').textContent = title;
+    const cropName = emoji === '🍅' ? 'Tomato' : emoji === '🥔' ? 'Potato' : 'Cauliflower';
+    const acts     = PANEL_ACTIVITIES[cropName] || [];
+    const actHTML  = acts.map(a =>
+      `<div class="flex gap-3"><span class="text-sm text-zinc-400 w-32 flex-shrink-0">${a.date}</span><span class="text-sm text-zinc-700">${a.act}</span></div>`
+    ).join('');
+
+    document.getElementById('panelContent').innerHTML = `
+      <div class="flex items-center gap-4">
+        <span class="text-5xl">${emoji}</span>
+        <div>
+          <p class="text-xl font-bold text-zinc-900">${cropName}</p>
+          <p class="text-base text-zinc-500">${variety}</p>
+          <span class="inline-block mt-1 bg-emerald-100 text-emerald-700 text-sm font-bold px-3 py-0.5 rounded-full">${status}</span>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="bg-zinc-50 rounded-xl p-4"><p class="text-xs text-zinc-400 uppercase tracking-wide mb-1">Planted</p><p class="font-bold text-zinc-800">${planted}</p></div>
+        <div class="bg-zinc-50 rounded-xl p-4"><p class="text-xs text-zinc-400 uppercase tracking-wide mb-1">Harvest</p><p class="font-bold text-zinc-800">${harvest}</p></div>
+        <div class="bg-zinc-50 rounded-xl p-4"><p class="text-xs text-zinc-400 uppercase tracking-wide mb-1">Area</p><p class="font-bold text-zinc-800">${area}</p></div>
+        <div class="bg-zinc-50 rounded-xl p-4"><p class="text-xs text-zinc-400 uppercase tracking-wide mb-1">Progress</p><p class="font-bold text-emerald-700">${progress}</p></div>
+      </div>
+      <div>
+        <p class="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-3">Recent Activity</p>
+        <div class="space-y-3">${actHTML || '<p class="text-sm text-zinc-400">No activity logged yet.</p>'}</div>
+      </div>
+      <div class="pt-4 border-t border-zinc-100">
+        <button onclick="closePanel()" class="ks-btn-secondary active:scale-95 w-full">Close</button>
+      </div>
+    `;
+
+    document.getElementById('crop-panel').classList.add('open');
+    document.getElementById('panel-backdrop').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closePanel() {
+    document.getElementById('crop-panel').classList.remove('open');
+    document.getElementById('panel-backdrop').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  /* ── Modal Confirm Handlers ─ */
+  function saveCrop() {
+    closeModal('modal-add-crop');
+    // Visual feedback — toast (simple)
+    showToast('Crop saved successfully! ✓');
+  }
+  function saveTask() {
+    closeModal('modal-add-task');
+    showToast('Task added to your schedule! ✓');
+  }
+  function showToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'fixed bottom-6 right-6 bg-emerald-800 text-white text-base font-semibold px-6 py-3.5 rounded-xl shadow-xl z-50';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+</script>
+</body>
+</html>
