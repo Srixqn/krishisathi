@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Farm Map — Krishi Sathi | कृषि साथी</title>
+  <meta name="description" content="Visual grid map of your farm showing active crop zones, plot health, and pending tasks on Krishi Sathi." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','system-ui','sans-serif'],mukta:['Mukta','system-ui','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Mukta:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    /* Plot cells */
+    .plot-cell { transition: all 0.2s ease; cursor: pointer; position: relative; overflow: hidden; }
+    .plot-cell:hover { transform: scale(1.02); box-shadow: 0 8px 32px rgba(0,0,0,0.12); z-index: 5; }
+    .plot-cell::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%); pointer-events: none; }
+    .plot-cell.selected { box-shadow: 0 0 0 4px #065f46, 0 8px 24px rgba(0,0,0,0.15); z-index: 10; }
+    /* Compass */
+    .compass { width: 60px; height: 60px; }
+    /* Detail panel slide */
+    .detail-panel { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+    /* Legend dot */
+    .legend-dot { width: 12px; height: 12px; border-radius: 4px; flex-shrink: 0; }
+    /* Pulse indicator */
+    @keyframes plotPulse { 0%,100%{box-shadow: 0 0 0 0 rgba(5,150,105,0.3)} 50%{box-shadow: 0 0 0 8px rgba(5,150,105,0)} }
+    .pulse-ring { animation: plotPulse 2s ease infinite; }
+  </style>
+</head>
+<body class="bg-zinc-50 font-inter text-zinc-900">
+
+<div class="flex h-screen overflow-hidden">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="flex-shrink-0 bg-white border-r border-zinc-200 flex flex-col" style="width:272px;">
+    <div class="px-6 pt-7 pb-5 border-b border-zinc-100">
+      <div class="flex items-center gap-3 mb-1">
+        <div class="w-10 h-10 rounded-lg bg-emerald-800 flex items-center justify-center flex-shrink-0">
+          <svg width="22" height="22" viewBox="0 0 20 20" fill="none"><path d="M10 2C6 2 3 6 3 10c0 3 1.5 5.5 4 7" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M10 2c4 0 7 4 7 8 0 3-1.5 5.5-4 7" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M10 18V8" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M6 12l4-4 4 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-emerald-900 leading-tight tracking-wide" data-i18n="brand-name">KRISHI SATHI</p>
+          <p class="text-sm text-emerald-700 font-semibold leading-tight" data-i18n="brand-nepali">कृषि साथी</p>
+        </div>
+      </div>
+      <p class="text-xs text-zinc-400 tracking-widest uppercase mt-2" data-i18n="brand-tagline">Agricultural Digital Portal</p>
+    </div>
+    <div class="px-5 py-4 border-b border-zinc-100">
+      <p class="text-xs uppercase tracking-widest text-zinc-400 mb-2 font-medium" data-i18n="lang-label">Language / भाषा</p>
+      <div class="flex rounded-lg border border-zinc-200 overflow-hidden text-sm font-semibold">
+        <button id="langEN" onclick="setLang('en')" class="lang-btn active flex-1 py-2.5 text-center hover:bg-emerald-50">English</button>
+        <button id="langNP" onclick="setLang('np')" class="lang-btn flex-1 py-2.5 text-center text-zinc-500 hover:bg-emerald-50">नेपाली</button>
+      </div>
+    </div>
+    <nav class="flex-1 px-3 py-5 overflow-y-auto space-y-0.5">
+      <p class="text-xs uppercase tracking-widest text-zinc-400 px-3 mb-2 font-medium" data-i18n="nav-menu-heading">Main Menu</p>
+      <a href="index.html" class="sidebar-link nav-active"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg><span data-i18n="nav-dashboard">Dashboard</span></a>
+      <a href="crops.html" class="sidebar-link "><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg><span data-i18n="nav-crops">My Crops</span></a>
+      <a href="disease.html" class="sidebar-link "><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg><span data-i18n="nav-disease">Disease Check</span></a>
+      <a href="forecast.html" class="sidebar-link "><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg><span data-i18n="nav-forecast">7-Day Forecast</span></a>
+      <a href="marketplace.html" class="sidebar-link "><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg><span data-i18n="nav-marketplace">Marketplace</span></a>
+      <a href="rental.html" class="sidebar-link "><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span data-i18n="nav-rental">Equipment Rental</span></a>
+      <a href="resources.html" class="sidebar-link "><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg><span data-i18n="nav-resources">Farming Resources</span></a>
+      <div class="pt-4 mt-4 border-t border-zinc-100">
+        <p class="text-xs uppercase tracking-widest text-zinc-400 px-3 mb-2 font-medium" data-i18n="nav-updates-heading">Updates & Account</p>
+        <a href="alerts.html" class="sidebar-link "><svg class="w-5 h-5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span data-i18n="nav-alerts">Active Alerts</span></a>
+        <a href="notifications.html" class="sidebar-link "><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg><span data-i18n="nav-notifications">Notifications</span></a>
+        <a href="profile.html" class="sidebar-link "><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg><span data-i18n="nav-profile">Profile & Activity</span></a>
+      </div>
+    </nav>
+    <div class="px-5 py-4 border-t border-zinc-100">
+      <a href="profile.html" class="flex items-center gap-3 hover:bg-zinc-50 rounded-lg p-2 transition-colors">
+        <div class="w-9 h-9 rounded-full bg-emerald-700 flex items-center justify-center text-white text-base font-bold flex-shrink-0">र</div>
+        <div><p class="text-sm font-semibold text-zinc-800">राम शर्मा</p><p class="text-xs text-zinc-400">Farmer · Kavre</p></div>
+      </a>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header class="bg-white border-b border-zinc-200 px-8 py-4 flex items-center justify-between flex-shrink-0">
+      <div>
+        <p class="text-xs uppercase tracking-widest text-zinc-400 mb-0.5 font-medium" data-i18n="fm-page-sub">Farm Overview</p>
+        <h1 class="text-2xl font-bold text-zinc-900" data-i18n="fm-page-title">Farm Map</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="forecast.html" class="hidden md:flex items-center gap-2 bg-emerald-50/80 border border-emerald-200/60 rounded-xl px-3.5 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-100/80 transition-colors">
+          <span class="text-emerald-700 font-bold">📍 Kavre</span><span class="text-emerald-300">|</span><span class="text-amber-600">☀️ 24°C</span>
+        </a>
+        <a href="notifications.html" class="relative w-11 h-11 rounded-xl border border-zinc-200 bg-white flex items-center justify-center hover:bg-emerald-50 hover:border-emerald-300 transition-colors" aria-label="Notifications">
+          <svg class="w-5 h-5 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center badge-pulse">4</span>
+        </a>
+        <a href="profile.html" class="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2 hover:border-emerald-300 hover:bg-emerald-50 transition-colors">
+          <div class="w-8 h-8 rounded-full bg-emerald-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">र</div>
+          <div><p class="text-sm font-semibold text-zinc-800 leading-tight">राम शर्मा</p><p class="text-xs text-zinc-500 leading-tight">Farmer ID: #4092</p></div>
+        </a>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto px-8 py-7">
+
+      <!-- Breadcrumb -->
+      <a href="index.html" class="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 hover:text-emerald-900 mb-6 transition-colors" data-i18n="fm-breadcrumb">← Back to Dashboard</a>
+
+      <!-- Farm Overview Stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-7">
+        <div class="bg-white border border-zinc-200 rounded-xl p-4 text-center">
+          <p class="text-3xl font-extrabold text-emerald-800">4.0</p>
+          <p class="text-sm text-zinc-500 font-medium" data-i18n="fm-stat-area">Total Ropani</p>
+        </div>
+        <div class="bg-white border border-zinc-200 rounded-xl p-4 text-center">
+          <p class="text-3xl font-extrabold text-zinc-800">4</p>
+          <p class="text-sm text-zinc-500 font-medium" data-i18n="fm-stat-plots">Active Plots</p>
+        </div>
+        <div class="bg-white border border-zinc-200 rounded-xl p-4 text-center">
+          <p class="text-3xl font-extrabold text-blue-700">5</p>
+          <p class="text-sm text-zinc-500 font-medium" data-i18n="fm-stat-crops">Crops Growing</p>
+        </div>
+        <div class="bg-white border border-zinc-200 rounded-xl p-4 text-center">
+          <p class="text-3xl font-extrabold text-amber-700">Oct 20</p>
+          <p class="text-sm text-zinc-500 font-medium" data-i18n="fm-stat-harvest">Next Harvest</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-7">
+
+        <!-- ══ FARM GRID MAP ══ -->
+        <div class="xl:col-span-2 bg-white border border-zinc-200 rounded-2xl p-7">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-bold text-zinc-900" data-i18n="fm-map-title">🗺️ Farm Layout — Ram Sharma, Kavre</h3>
+            <!-- Compass -->
+            <div class="compass flex items-center justify-center relative">
+              <svg viewBox="0 0 60 60" class="w-full h-full">
+                <circle cx="30" cy="30" r="28" fill="none" stroke="#e4e4e7" stroke-width="1.5"/>
+                <text x="30" y="12" text-anchor="middle" font-size="10" font-weight="bold" fill="#065f46">N</text>
+                <text x="30" y="55" text-anchor="middle" font-size="9" fill="#a1a1aa">S</text>
+                <text x="54" y="34" text-anchor="middle" font-size="9" fill="#a1a1aa">E</text>
+                <text x="7" y="34" text-anchor="middle" font-size="9" fill="#a1a1aa">W</text>
+                <polygon points="30,15 27,24 33,24" fill="#065f46"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Grid Map -->
+          <div class="grid grid-cols-4 grid-rows-3 gap-3" style="min-height: 380px;">
+            <!-- Plot A: Tomato — spans 2 cols, 2 rows (large plot) -->
+            <div class="plot-cell col-span-2 row-span-2 rounded-2xl p-5 flex flex-col justify-between"
+                 style="background: linear-gradient(135deg, #065f46 0%, #059669 100%);"
+                 onclick="selectPlot('a')" id="plot-a">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-white text-xs font-bold bg-white/20 px-2.5 py-0.5 rounded-full">Plot A</span>
+                  <span class="text-white text-xs font-semibold bg-white/20 px-2.5 py-0.5 rounded-full">1.5 Ropani</span>
+                </div>
+                <p class="text-4xl mb-1">🍅</p>
+                <p class="text-white text-lg font-bold">Tomato</p>
+                <p class="text-emerald-200 text-sm">गोलभेँडा · Srijana F1</p>
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-emerald-200 text-xs font-medium" data-i18n="fm-progress">Progress</span>
+                  <span class="text-white text-xs font-bold">65%</span>
+                </div>
+                <div class="h-2.5 bg-white/20 rounded-full overflow-hidden">
+                  <div class="h-full bg-white rounded-full" style="width:65%"></div>
+                </div>
+                <span class="inline-block mt-2 text-xs font-semibold text-emerald-100 bg-white/15 px-2 py-0.5 rounded">🌸 Flowering</span>
+              </div>
+            </div>
+
+            <!-- Plot B: Potato — 2 cols, 1 row -->
+            <div class="plot-cell col-span-2 row-span-1 rounded-2xl p-5 flex flex-col justify-between"
+                 style="background: linear-gradient(135deg, #92400e 0%, #b45309 100%);"
+                 onclick="selectPlot('b')" id="plot-b">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-white text-xs font-bold bg-white/20 px-2.5 py-0.5 rounded-full">Plot B</span>
+                <span class="text-white text-xs font-semibold bg-white/20 px-2.5 py-0.5 rounded-full">1.0 Ropani</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="text-3xl">🥔</span>
+                <div>
+                  <p class="text-white text-base font-bold">Potato · आलु</p>
+                  <div class="flex items-center gap-2 mt-1">
+                    <div class="h-2 w-20 bg-white/20 rounded-full overflow-hidden"><div class="h-full bg-white rounded-full" style="width:25%"></div></div>
+                    <span class="text-white text-xs font-bold">25%</span>
+                  </div>
+                  <span class="text-amber-200 text-xs font-semibold">🌱 Planted</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Plot C: Cauliflower — 1 col, 1 row -->
+            <div class="plot-cell col-span-1 row-span-1 rounded-2xl p-4 flex flex-col justify-between"
+                 style="background: linear-gradient(135deg, #166534 0%, #16a34a 100%);"
+                 onclick="selectPlot('c')" id="plot-c">
+              <div class="flex items-center justify-between">
+                <span class="text-white text-xs font-bold bg-white/20 px-2 py-0.5 rounded-full">Plot C</span>
+                <span class="text-white text-xs bg-white/20 px-2 py-0.5 rounded-full">0.8R</span>
+              </div>
+              <div class="text-center mt-1">
+                <span class="text-2xl">🥦</span>
+                <p class="text-white text-sm font-bold mt-1">Cauliflower</p>
+                <div class="h-1.5 w-full bg-white/20 rounded-full overflow-hidden mt-1"><div class="h-full bg-white rounded-full" style="width:95%"></div></div>
+                <span class="text-emerald-200 text-xs font-semibold pulse-ring inline-block mt-1">🧺 Ready!</span>
+              </div>
+            </div>
+
+            <!-- Plot D: Maize — 1 col, 1 row -->
+            <div class="plot-cell col-span-1 row-span-1 rounded-2xl p-4 flex flex-col justify-between"
+                 style="background: linear-gradient(135deg, #854d0e 0%, #ca8a04 100%);"
+                 onclick="selectPlot('d')" id="plot-d">
+              <div class="flex items-center justify-between">
+                <span class="text-white text-xs font-bold bg-white/20 px-2 py-0.5 rounded-full">Plot D</span>
+                <span class="text-white text-xs bg-white/20 px-2 py-0.5 rounded-full">0.7R</span>
+              </div>
+              <div class="text-center mt-1">
+                <span class="text-2xl">🌽</span>
+                <p class="text-white text-sm font-bold mt-1">Maize</p>
+                <div class="h-1.5 w-full bg-white/20 rounded-full overflow-hidden mt-1"><div class="h-full bg-white rounded-full" style="width:10%"></div></div>
+                <span class="text-yellow-200 text-xs font-semibold">🌱 Seedling</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Legend -->
+          <div class="flex flex-wrap items-center gap-5 mt-5 pt-4 border-t border-zinc-100">
+            <p class="text-xs font-bold text-zinc-400 uppercase tracking-wider" data-i18n="fm-legend">Legend:</p>
+            <div class="flex items-center gap-2"><div class="legend-dot" style="background:#059669"></div><span class="text-xs font-semibold text-zinc-600" data-i18n="fm-leg-healthy">Healthy / Growing</span></div>
+            <div class="flex items-center gap-2"><div class="legend-dot" style="background:#16a34a"></div><span class="text-xs font-semibold text-zinc-600" data-i18n="fm-leg-ready">Harvest Ready</span></div>
+            <div class="flex items-center gap-2"><div class="legend-dot" style="background:#b45309"></div><span class="text-xs font-semibold text-zinc-600" data-i18n="fm-leg-planted">Recently Planted</span></div>
+            <div class="flex items-center gap-2"><div class="legend-dot" style="background:#ca8a04"></div><span class="text-xs font-semibold text-zinc-600" data-i18n="fm-leg-seedling">Seedling Stage</span></div>
+          </div>
+        </div>
+
+        <!-- ══ PLOT DETAIL PANEL ══ -->
+        <div class="xl:col-span-1">
+          <div id="detailPanel" class="detail-panel bg-white border border-zinc-200 rounded-2xl p-6 sticky top-7">
+            <div class="text-center py-8" id="detailEmpty">
+              <span class="text-4xl mb-3 block">👆</span>
+              <p class="text-base font-bold text-zinc-500" data-i18n="fm-detail-empty">Click a plot to view details</p>
+              <p class="text-sm text-zinc-400" data-i18n="fm-detail-empty-sub">Tap any colored zone on the farm map</p>
+            </div>
+            <div id="detailContent" class="hidden">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Quick Stats -->
+          <div class="bg-gradient-to-br from-emerald-800 to-emerald-600 rounded-2xl p-6 text-white mt-5">
+            <h4 class="text-base font-bold mb-4" data-i18n="fm-season-title">🌾 Season Summary</h4>
+            <div class="space-y-3 text-sm">
+              <div class="flex justify-between"><span class="text-emerald-200" data-i18n="fm-season-planted">Total Planted</span><span class="font-bold">4 crops</span></div>
+              <div class="flex justify-between"><span class="text-emerald-200" data-i18n="fm-season-utilization">Land Utilization</span><span class="font-bold">100%</span></div>
+              <div class="flex justify-between"><span class="text-emerald-200" data-i18n="fm-season-pending-tasks">Pending Tasks</span><span class="font-bold text-amber-300">6 tasks</span></div>
+              <div class="flex justify-between"><span class="text-emerald-200" data-i18n="fm-season-soil-avg">Avg Soil Health</span><span class="font-bold">72/100</span></div>
+            </div>
+            <a href="yield-analytics.html" class="block mt-5 bg-white/15 hover:bg-white/25 text-white text-sm font-bold text-center py-3 rounded-xl transition-colors" data-i18n="fm-view-analytics">📊 View Yield Analytics →</a>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="i18n.js"></script>
+<script>
+  /* ── Plot Data ── */
+  const PLOTS = {
+    a: {
+      name: 'Plot A — Tomato', emoji: '🍅', crop: 'Tomato (गोलभेँडा)', variety: 'Srijana F1',
+      area: '1.5 Ropani', status: 'Growing', stage: '🌸 Flowering', progress: 65,
+      planted: '2026-06-15', harvest: '2026-10-20', health: 82,
+      weather: '⚠ High humidity (78%) — blight risk. Monitor daily.',
+      tasks: ['Apply fungicide spray (overdue)', 'Irrigation — tomorrow 6AM', 'Stake loose plants']
+    },
+    b: {
+      name: 'Plot B — Potato', emoji: '🥔', crop: 'Potato (आलु)', variety: 'Kufri Jyoti',
+      area: '1.0 Ropani', status: 'Planted', stage: '🌱 Sprouting', progress: 25,
+      planted: '2026-08-20', harvest: '2026-12-15', health: 88,
+      weather: '✓ Good conditions. Soil moisture adequate.',
+      tasks: ['First earthing-up in 5 days', 'Apply DAP fertilizer']
+    },
+    c: {
+      name: 'Plot C — Cauliflower', emoji: '🥦', crop: 'Cauliflower (काउली)', variety: 'Snow Crown',
+      area: '0.8 Ropani', status: 'Harvest Ready', stage: '🧺 Ready', progress: 95,
+      planted: '2026-06-01', harvest: '2026-09-22', health: 90,
+      weather: '🌧️ Cover heads during afternoon showers.',
+      tasks: ['Harvest within 3 days', 'Prepare for next planting']
+    },
+    d: {
+      name: 'Plot D — Maize', emoji: '🌽', crop: 'Maize (मकै)', variety: 'Rampur Composite',
+      area: '0.7 Ropani', status: 'Seedling', stage: '🌱 Seedling', progress: 10,
+      planted: '2026-09-10', harvest: '2027-01-15', health: 94,
+      weather: '✓ Ideal germination temperature.',
+      tasks: ['Thinning in 7 days', 'First weeding']
+    }
+  };
+
+  let selectedPlotId = null;
+
+  function selectPlot(id) {
+    // Clear previous selection
+    document.querySelectorAll('.plot-cell').forEach(c => c.classList.remove('selected'));
+    document.getElementById('plot-' + id).classList.add('selected');
+    selectedPlotId = id;
+
+    const p = PLOTS[id];
+    document.getElementById('detailEmpty').classList.add('hidden');
+    const dc = document.getElementById('detailContent');
+    dc.classList.remove('hidden');
+
+    dc.innerHTML = `
+      <div class="text-center mb-5">
+        <span class="text-5xl block mb-2">${p.emoji}</span>
+        <p class="text-xl font-bold text-zinc-900">${p.crop}</p>
+        <p class="text-sm text-zinc-500">${p.variety} · ${p.area}</p>
+        <span class="inline-block mt-2 bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full">${p.status}</span>
+      </div>
+      <div class="space-y-3 mb-5">
+        <div class="bg-zinc-50 rounded-xl p-3 flex justify-between text-sm">
+          <span class="text-zinc-500 font-medium">Stage</span>
+          <span class="font-bold text-zinc-800">${p.stage}</span>
+        </div>
+        <div class="bg-zinc-50 rounded-xl p-3">
+          <div class="flex justify-between text-sm mb-1.5">
+            <span class="text-zinc-500 font-medium">Progress</span>
+            <span class="font-bold text-emerald-700">${p.progress}%</span>
+          </div>
+          <div class="h-2.5 bg-zinc-200 rounded-full overflow-hidden"><div class="h-full bg-emerald-500 rounded-full" style="width:${p.progress}%"></div></div>
+        </div>
+        <div class="bg-zinc-50 rounded-xl p-3 flex justify-between text-sm">
+          <span class="text-zinc-500 font-medium">Planted</span>
+          <span class="font-bold text-zinc-800">${p.planted}</span>
+        </div>
+        <div class="bg-zinc-50 rounded-xl p-3 flex justify-between text-sm">
+          <span class="text-zinc-500 font-medium">Est. Harvest</span>
+          <span class="font-bold text-zinc-800">${p.harvest}</span>
+        </div>
+        <div class="bg-zinc-50 rounded-xl p-3 flex justify-between text-sm">
+          <span class="text-zinc-500 font-medium">Health Score</span>
+          <span class="font-bold text-emerald-700">${p.health}/100</span>
+        </div>
+      </div>
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-3.5 mb-5">
+        <p class="text-xs font-bold text-amber-700 mb-1">🌤️ Weather Advisory</p>
+        <p class="text-sm text-amber-800">${p.weather}</p>
+      </div>
+      <div>
+        <p class="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Pending Tasks</p>
+        <div class="space-y-2">
+          ${p.tasks.map(t => `<div class="flex items-start gap-2 text-sm"><span class="text-emerald-600 mt-0.5">☐</span><span class="text-zinc-700">${t}</span></div>`).join('')}
+        </div>
+      </div>
+      <a href="crop-detail.html" class="block mt-5 bg-emerald-800 hover:bg-emerald-700 text-white text-sm font-bold text-center py-3 rounded-xl transition-colors">View Full Crop Detail →</a>
+    `;
+  }
+
+  function showToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'fixed bottom-6 right-6 bg-emerald-800 text-white text-base font-semibold px-6 py-3.5 rounded-xl shadow-xl z-50';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+</script>
+</body>
+</html>
