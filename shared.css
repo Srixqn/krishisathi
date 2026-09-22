@@ -6,6 +6,17 @@
 /* ── Google Fonts ── */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Mukta:wght@400;600;700&display=swap');
 
+/* ── Theme Variables ── */
+:root {
+  --ks-emerald: #065f46;
+  --ks-emerald-hover: #047857;
+  --ks-emerald-light: #d1fae5;
+  --ks-emerald-dark: #1a4731;
+  --ks-zinc-text: #52525b;
+  --ks-zinc-border: #e4e4e7;
+  --ks-error: #ef4444;
+}
+
 /* ── Reset & Base ── */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
@@ -24,20 +35,20 @@ body             { font-family: 'Inter', system-ui, sans-serif; }
   border-radius: 8px;
   text-decoration: none;
   font-size: 0.9375rem;
-  color: #52525b;
+  color: var(--ks-zinc-text);
   transition: background-color 0.15s ease, color 0.15s ease;
 }
-.sidebar-link:hover { background-color: #d1fae5; color: #065f46; }
+.sidebar-link:hover { background-color: var(--ks-emerald-light); color: var(--ks-emerald); }
 .nav-active {
-  background-color: #d1fae5;
-  color: #065f46;
+  background-color: var(--ks-emerald-light);
+  color: var(--ks-emerald);
   font-weight: 600;
-  border-left: 4px solid #065f46;
+  border-left: 4px solid var(--ks-emerald);
 }
 
 /* ── Language Toggle ── */
 .lang-btn { transition: background-color 0.15s ease, color 0.15s ease; cursor: pointer; }
-.lang-btn.active { background-color: #065f46 !important; color: #ffffff !important; font-weight: 700; }
+.lang-btn.active { background-color: var(--ks-emerald) !important; color: #ffffff !important; font-weight: 700; }
 
 /* ── Modal System ── */
 .modal-overlay {
@@ -117,11 +128,11 @@ button:active { transform: scale(0.96); }
 
 /* ── Filter chips ── */
 .filter-chip { transition: all 0.15s ease; }
-.filter-chip.active { background-color: #065f46; color: #fff; border-color: #065f46; }
+.filter-chip.active { background-color: var(--ks-emerald); color: #fff; border-color: var(--ks-emerald); }
 
 /* ── Segment control ── */
 .seg-btn { transition: all 0.15s ease; }
-.seg-btn.active { background-color: #1a4731; color: #fff; }
+.seg-btn.active { background-color: var(--ks-emerald-dark); color: #fff; }
 
 /* ── Row hover ── */
 .row-hover { transition: background-color 0.1s ease; }
@@ -147,26 +158,27 @@ button:active { transform: scale(0.96); }
   width: 100%;
   padding: 0.75rem 1rem;
   font-size: 1rem;
-  border: 1.5px solid #e4e4e7;
+  border: 1.5px solid var(--ks-zinc-border);
   border-radius: 0.75rem;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   font-family: inherit;
+  min-height: 44px;
 }
-.ks-input:focus { border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,0.12); }
-.ks-input.error { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.10); }
+.ks-input:focus { border-color: var(--ks-emerald); box-shadow: 0 0 0 3px rgba(5,150,105,0.12); }
+.ks-input.error { border-color: var(--ks-error); box-shadow: 0 0 0 3px rgba(239,68,68,0.10); }
 
 .ks-label {
   display: block;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #52525b;
+  color: var(--ks-zinc-text);
   margin-bottom: 0.4rem;
 }
 
 .ks-btn-primary {
   width: 100%;
-  background-color: #065f46;
+  background-color: var(--ks-emerald);
   color: white;
   font-size: 1rem;
   font-weight: 700;
@@ -175,20 +187,22 @@ button:active { transform: scale(0.96); }
   border-radius: 0.75rem;
   cursor: pointer;
   transition: background-color 0.15s ease, transform 0.1s ease;
+  min-height: 44px;
 }
-.ks-btn-primary:hover { background-color: #047857; }
+.ks-btn-primary:hover { background-color: var(--ks-emerald-hover); }
 .ks-btn-primary:active { transform: scale(0.97); }
 
 .ks-btn-secondary {
   background-color: transparent;
-  border: 1.5px solid #e4e4e7;
-  color: #52525b;
+  border: 1.5px solid var(--ks-zinc-border);
+  color: var(--ks-zinc-text);
   font-size: 1rem;
   font-weight: 600;
   padding: 0.75rem 1.5rem;
   border-radius: 0.75rem;
   cursor: pointer;
   transition: background-color 0.15s ease;
+  min-height: 44px;
 }
 .ks-btn-secondary:hover { background-color: #f4f4f5; }
 .ks-btn-secondary:active { transform: scale(0.97); }
