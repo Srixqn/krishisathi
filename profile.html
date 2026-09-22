@@ -21,10 +21,10 @@
 </head>
 <body class="bg-zinc-50 font-inter text-zinc-900">
 
-<div class="flex h-screen overflow-hidden">
+<div class="flex min-h-screen">
   <!-- SIDEBAR -->
   <!-- ══ SIDEBAR ══ -->
-  <aside class="hidden lg:flex flex-shrink-0 bg-white border-r border-zinc-200 flex-col" style="width:272px;">
+  <aside class="hidden lg:flex flex-shrink-0 bg-white border-r border-zinc-200 flex-col sticky top-0 h-screen" style="width:272px;">
     <div class="px-6 pt-7 pb-5 border-b border-zinc-100">
       <div class="flex items-center gap-3 mb-1">
         <div class="w-10 h-10 rounded-lg bg-emerald-800 flex items-center justify-center flex-shrink-0">
@@ -103,7 +103,7 @@
   </aside>
 
   <!-- MAIN -->
-  <div class="flex-1 flex flex-col overflow-hidden">
+  <div class="flex-1 flex flex-col">
     <header class="bg-white border-b border-zinc-200 px-4 lg:px-8 py-4 flex items-center justify-between flex-shrink-0">
       <div>
         <p class="text-xs uppercase tracking-widest text-zinc-400 mb-0.5 font-medium" data-i18n="page-profile-sub">Farmer Account</p>
@@ -132,7 +132,7 @@
       </div>
     </header>
 
-    <main class="flex-1 overflow-y-auto px-4 lg:px-8 py-5 lg:py-7 pb-24 lg:pb-7">
+    <main class="flex-1 px-4 lg:px-8 py-5 lg:py-7 pb-12">
       <div class="grid grid-cols-3 gap-6">
 
         <!-- ── Left Column: Identity Card ── -->
