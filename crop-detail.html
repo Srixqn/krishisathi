@@ -28,37 +28,6 @@
 </head>
 <body class="bg-zinc-50 font-inter text-zinc-900">
 
-<!-- ══ LOG ACTIVITY MODAL ══ -->
-<div id="modal-log-activity" class="modal-overlay hidden">
-  <div class="modal-box p-7">
-    <div class="flex items-center justify-between mb-6">
-      <h2 class="text-xl font-bold text-zinc-900" data-i18n="cd-modal-log-title">Log Farm Activity</h2>
-      <button onclick="closeModal('modal-log-activity')" class="w-9 h-9 rounded-lg border border-zinc-200 flex items-center justify-center hover:bg-zinc-100 active:scale-95 transition-all">
-        <svg class="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
-    </div>
-    <div class="space-y-4">
-      <div>
-        <label class="ks-label" data-i18n="cd-modal-activity-type">Activity Type</label>
-        <select class="ks-input">
-          <option>🚿 Irrigation / सिँचाई</option>
-          <option>🧪 Fertilizer Application / मल प्रयोग</option>
-          <option>🛡️ Pesticide Spray / कीटनाशक छर्काइ</option>
-          <option>✂️ Pruning / काँटछाँट</option>
-          <option>🌱 Transplanting / रोपाई</option>
-          <option>📝 Observation / अवलोकन</option>
-        </select>
-      </div>
-      <div><label class="ks-label" data-i18n="cd-modal-notes">Notes / Remarks</label><textarea class="ks-input" rows="3" placeholder="e.g. Applied 200ml Ridomil MZ per 15L water..."></textarea></div>
-      <div><label class="ks-label" data-i18n="cd-modal-date">Date</label><input type="date" class="ks-input" value="2026-09-20" /></div>
-    </div>
-    <div class="flex gap-3 mt-7">
-      <button onclick="logActivity()" class="ks-btn-primary active:scale-95" data-i18n="cd-modal-save">Save Activity</button>
-      <button onclick="closeModal('modal-log-activity')" class="ks-btn-secondary active:scale-95" data-i18n="modal-cancel">Cancel</button>
-    </div>
-  </div>
-</div>
-
 <div class="flex h-screen overflow-hidden">
 
   <!-- ══ SIDEBAR ══ -->
@@ -363,7 +332,7 @@
         <div class="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-7">
           <div class="flex items-center justify-between mb-5">
             <h3 class="text-lg font-bold text-zinc-900" data-i18n="cd-activity-title">Recent Activity</h3>
-            <button onclick="openModal('modal-log-activity')" class="text-sm font-semibold text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-lg transition-colors" data-i18n="cd-activity-log-btn">+ Log Activity</button>
+            <a href="log-activity.html?crop=123" class="text-sm font-semibold text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-lg transition-colors" data-i18n="cd-activity-log-btn" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">+ Log Activity</a>
           </div>
           <div class="space-y-0">
             <!-- Activity 1 -->
@@ -419,13 +388,13 @@
           <div class="bg-white border border-zinc-200 rounded-2xl p-6">
             <h3 class="text-lg font-bold text-zinc-900 mb-4" data-i18n="cd-actions-title">Quick Actions</h3>
             <div class="space-y-3">
-              <button onclick="openModal('modal-log-activity')" class="w-full flex items-center gap-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl p-3.5 text-left transition-colors">
+              <a href="log-activity.html?crop=123" class="w-full flex items-center gap-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl p-3.5 text-left transition-colors" style="text-decoration:none;">
                 <span class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-lg">📝</span>
                 <div>
                   <p class="text-sm font-bold text-emerald-800" data-i18n="cd-action-log">Log Activity</p>
                   <p class="text-xs text-emerald-600" data-i18n="cd-action-log-desc">Record irrigation, spray, etc.</p>
                 </div>
-              </button>
+              </a>
               <a href="soil-test.html" class="w-full flex items-center gap-3 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl p-3.5 text-left transition-colors">
                 <span class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-lg">🧪</span>
                 <div>
