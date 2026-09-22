@@ -21,27 +21,6 @@
 </head>
 <body class="bg-zinc-50 font-inter text-zinc-900">
 
-<!-- ══ Change Password Modal ══ -->
-<div id="modal-pw" class="modal-overlay hidden">
-  <div class="modal-box p-7">
-    <div class="flex items-center justify-between mb-6">
-      <h2 class="text-xl font-bold text-zinc-900" data-i18n="modal-pw-title">Change Password</h2>
-      <button onclick="closeModal('modal-pw')" class="w-9 h-9 rounded-lg border border-zinc-200 flex items-center justify-center hover:bg-zinc-100 active:scale-95 transition-all">
-        <svg class="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
-    </div>
-    <div class="space-y-4">
-      <div><label class="ks-label" data-i18n="modal-pw-old">Old Password</label><input type="password" class="ks-input" placeholder="••••••••" /></div>
-      <div><label class="ks-label" data-i18n="modal-pw-new">New Password</label><input type="password" class="ks-input" placeholder="••••••••" /></div>
-      <div><label class="ks-label" data-i18n="modal-pw-confirm">Confirm New Password</label><input type="password" class="ks-input" placeholder="••••••••" /></div>
-    </div>
-    <div class="flex gap-3 mt-7">
-      <button onclick="savePw()" class="ks-btn-primary active:scale-95" data-i18n="modal-pw-save">Update Password</button>
-      <button onclick="closeModal('modal-pw')" class="ks-btn-secondary active:scale-95" data-i18n="modal-cancel">Cancel</button>
-    </div>
-  </div>
-</div>
-
 <div class="flex h-screen overflow-hidden">
   <!-- SIDEBAR -->
   <!-- ══ SIDEBAR ══ -->
@@ -281,11 +260,11 @@
           <!-- Account Actions -->
           <div class="flex gap-4">
             <!-- Change Password → modal -->
-            <button onclick="openModal('modal-pw')"
-              class="flex-1 flex items-center justify-center gap-2 border-2 border-zinc-200 text-zinc-700 text-base font-bold py-4 rounded-2xl hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 active:scale-95 transition-all">
+            <a href="change-password.html" 
+              class="flex-1 flex items-center justify-center gap-2 border-2 border-zinc-200 text-zinc-700 text-base font-bold py-4 rounded-2xl hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 active:scale-95 transition-all" style="text-decoration:none;">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
               <span data-i18n="btn-change-password">Change Password</span>
-            </button>
+            </a>
             <!-- Logout → login.html (instant redirect) -->
             <!-- HCI: High-consequence action clearly labelled in red -->
             <button onclick="doLogout()"

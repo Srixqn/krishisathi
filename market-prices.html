@@ -183,7 +183,7 @@
 
       <!-- ── VIEW: Market Prices ── -->
 
-      <div id="view-prices" class="view-section">
+      <div id="view-prices" class="view-section active">
         <div class="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
           <div class="bg-emerald-800 px-7 py-6">
             <h2 class="text-xl font-bold text-white" data-i18n="mandi-title">Today's Mandi Prices</h2>
@@ -219,15 +219,7 @@
 
 <script src="i18n.js"></script>
 <script>
-  /* ── URL-First State Initialization ── */
-  document.addEventListener('DOMContentLoaded', () => {
-    const params = new URLSearchParams(window.location.search);
-    const view = params.get('view');
-    if (view) {
-      const btn = document.getElementById('seg-' + view);
-      if (btn) setSegment(view, btn);
-    }
-  });
+  
 
   /* ── Segment control — swaps view divs ───────────────
      HCI: Direct Manipulation + immediate feedback
